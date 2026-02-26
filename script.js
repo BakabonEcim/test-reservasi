@@ -3,7 +3,21 @@ let currentPage = 'home';
 let selectedDate = '';
 let selectedReservationId = null;
 let selectedMejaForReservasi = null;
-let currentUser = 'Staf'; // Bisa diganti dengan login sederhana nanti
+let currentUser = 'Staf';
+let tableViewMode = 'list'; // 'list' atau 'card'
+let visibleColumns = {
+    status: true,
+    nama: true,
+    jumlah: true,
+    hp: true,
+    area: true,
+    meja: true,
+    order: true,
+    dp: true,
+    urutan: true,
+    catatan: true,
+    aksi: true
+};
 
 // Referensi elemen
 const contentEl = document.getElementById('content');
@@ -60,7 +74,6 @@ function addLog(action, details, reservationId = null) {
         details: details,
         reservationId: reservationId
     });
-    // Simpan maksimal 1000 log
     if (logs.length > 1000) logs.shift();
     localStorage.setItem('activityLogs', JSON.stringify(logs));
 }
@@ -114,10 +127,14 @@ function loadPage(page, params = {}) {
         renderActivityLog();
         backBtn.style.display = 'block';
         pageTitle.textContent = 'Riwayat Aktivitas';
+    } else if (page === 'columnSettings') {
+        renderColumnSettings(params.date);
+        backBtn.style.display = 'block';
+        pageTitle.textContent = 'Atur Kolom';
     }
 }
 
-// Render Home dengan dashboard dan notifikasi
+// Render Home dengan dashboard
 function renderHome() {
     const today = new Date().toISOString().split('T')[0];
     const reservationsToday = getReservations().filter(r => r.tanggal === today);
@@ -129,23 +146,27 @@ function renderHome() {
 
     contentEl.innerHTML = `
         <div class="dashboard">
-            <div style="display: flex; justify-content: space-around; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
-                <div style="text-align:center; background:#3498db; color:white; padding:15px; border-radius:5px; width:45%;">
-                    <h3>${reservationsToday.length}</h3>
-                    <p>Reservasi Hari Ini</p>
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px;">
+                <div class="dashboard-card" style="background: linear-gradient(135deg, #3498db, #2980b9);">
+                    <i class="fas fa-calendar-check" style="font-size: 24px; opacity:0.8;"></i>
+                    <div class="value">${reservationsToday.length}</div>
+                    <div>Reservasi Hari Ini</div>
                 </div>
-                <div style="text-align:center; background:#2ecc71; color:white; padding:15px; border-radius:5px; width:45%;">
-                    <h3>${mejaTerisi.size}</h3>
-                    <p>Meja Terisi</p>
+                <div class="dashboard-card" style="background: linear-gradient(135deg, #2ecc71, #27ae60);">
+                    <i class="fas fa-chair" style="font-size: 24px; opacity:0.8;"></i>
+                    <div class="value">${mejaTerisi.size}</div>
+                    <div>Meja Terisi</div>
                 </div>
-                <div style="text-align:center; background:#e67e22; color:white; padding:15px; border-radius:5px; width:45%;">
-                    <h3>${mejaKosong}</h3>
-                    <p>Meja Kosong</p>
+                <div class="dashboard-card" style="background: linear-gradient(135deg, #e67e22, #d35400);">
+                    <i class="fas fa-empty-set" style="font-size: 24px; opacity:0.8;"></i>
+                    <div class="value">${mejaKosong}</div>
+                    <div>Meja Kosong</div>
                 </div>
-                <div style="text-align:center; background:#e74c3c; color:white; padding:15px; border-radius:5px; width:45%; position:relative;">
-                    <h3>${incompleteToday.length}</h3>
-                    <p>Belum Lengkap</p>
-                    ${incompleteToday.length > 0 ? '<span style="position:absolute; top:-5px; right:-5px; background:#f1c40f; color:#333; border-radius:50%; width:20px; height:20px; display:flex; align-items:center; justify-content:center; font-weight:bold;">!</span>' : ''}
+                <div class="dashboard-card" style="background: linear-gradient(135deg, #e74c3c, #c0392b); position:relative;">
+                    <i class="fas fa-exclamation-triangle" style="font-size: 24px; opacity:0.8;"></i>
+                    <div class="value">${incompleteToday.length}</div>
+                    <div>Belum Lengkap</div>
+                    ${incompleteToday.length > 0 ? '<span class="badge-notification" style="position:absolute; top:5px; right:5px;">!</span>' : ''}
                 </div>
             </div>
         </div>
@@ -153,7 +174,7 @@ function renderHome() {
             <button class="home-btn btn-a" data-action="buatReservasi"><i class="fas fa-plus-circle"></i> Buat Reservasi Baru</button>
             <button class="home-btn btn-b" data-action="tambahMejaDp">
                 <i class="fas fa-edit"></i> Tambah Meja / DP
-                ${incompleteToday.length > 0 ? `<span style="background:#f1c40f; color:#333; border-radius:50%; padding:2px 8px; margin-left:5px; font-size:14px;">${incompleteToday.length}</span>` : ''}
+                ${incompleteToday.length > 0 ? `<span class="badge-notification" style="margin-left:5px;">${incompleteToday.length}</span>` : ''}
             </button>
             <button class="home-btn btn-c" data-action="listReservasi"><i class="fas fa-list"></i> List Reservasi</button>
             <button class="home-btn btn-d" data-action="cekMeja"><i class="fas fa-chair"></i> Cek Meja</button>
@@ -176,25 +197,59 @@ function renderHome() {
     });
 }
 
-// Render Date Picker
+// Render Date Picker yang lebih menarik
 function renderDatePicker(type) {
+    const today = new Date().toISOString().split('T')[0];
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = tomorrow.toISOString().split('T')[0];
+    
     contentEl.innerHTML = `
-        <div class="date-picker-container">
-            <input type="date" id="datePicker" value="${new Date().toISOString().split('T')[0]}">
-            <div style="display: flex; gap: 10px; margin-top: 10px;">
-                <button class="btn" id="todayBtn">Hari Ini</button>
-                <button class="btn" id="nextBtn">Lanjut</button>
+        <div style="text-align: center; padding: 20px;">
+            <h3 style="color: #2c3e50; margin-bottom: 20px;">Pilih Tanggal</h3>
+            <div style="background: #f8f9fa; border-radius: 15px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                <div style="position: relative; margin-bottom: 20px;">
+                    <i class="fas fa-calendar-alt" style="position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: #3498db; font-size: 20px;"></i>
+                    <input type="date" id="datePicker" value="${today}" 
+                           style="width: 100%; padding: 15px 15px 15px 45px; border: 2px solid #3498db; border-radius: 10px; font-size: 18px; box-sizing: border-box;">
+                </div>
+                
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px;">
+                    <button class="quick-date-btn" data-date="${today}" style="background: #e3f2fd; border: none; padding: 10px; border-radius: 8px;">
+                        <div><i class="fas fa-sun"></i></div>
+                        <small>Hari Ini</small>
+                    </button>
+                    <button class="quick-date-btn" data-date="${tomorrowStr}" style="background: #e8f5e8; border: none; padding: 10px; border-radius: 8px;">
+                        <div><i class="fas fa-cloud-sun"></i></div>
+                        <small>Besok</small>
+                    </button>
+                    <button class="quick-date-btn" id="customDateBtn" style="background: #fff3e0; border: none; padding: 10px; border-radius: 8px;">
+                        <div><i class="fas fa-edit"></i></div>
+                        <small>Lainnya</small>
+                    </button>
+                </div>
+                
+                <button class="btn" id="nextBtn" style="background: #3498db; color: white; padding: 15px; font-size: 18px;">
+                    <i class="fas fa-arrow-right"></i> Lanjutkan
+                </button>
             </div>
         </div>
     `;
     
-    document.getElementById('todayBtn').addEventListener('click', () => {
-        const today = new Date().toISOString().split('T')[0];
-        document.getElementById('datePicker').value = today;
+    const datePicker = document.getElementById('datePicker');
+    
+    document.querySelectorAll('.quick-date-btn[data-date]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            datePicker.value = btn.dataset.date;
+        });
+    });
+    
+    document.getElementById('customDateBtn').addEventListener('click', () => {
+        datePicker.showPicker();
     });
     
     document.getElementById('nextBtn').addEventListener('click', () => {
-        const date = document.getElementById('datePicker').value;
+        const date = datePicker.value;
         if (!date) {
             alert('Pilih tanggal terlebih dahulu');
             return;
@@ -260,25 +315,43 @@ function getNextDpUrutan(tanggal) {
     return reservations.length + 1;
 }
 
-// Render Buat Reservasi (dengan catatan)
+// Render Buat Reservasi dengan tanggal dan opsi ganti tanggal
 function renderBuatReservasi(date) {
+    const formattedDate = new Date(date).toLocaleDateString('id-ID', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+    });
+    
     let html = `
+        <div style="background: #f8f9fa; padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+                <div>
+                    <i class="fas fa-calendar-alt" style="color: #3498db; margin-right: 10px;"></i>
+                    <strong>${formattedDate}</strong>
+                </div>
+                <button class="btn-secondary" id="gantiTanggalBtn" style="padding: 8px 15px;">
+                    <i class="fas fa-exchange-alt"></i> Ganti Tanggal
+                </button>
+            </div>
+        </div>
         <form id="reservasiForm">
             <input type="hidden" id="tanggal" value="${date}">
             <div class="form-group">
-                <label>Nama Tamu</label>
-                <input type="text" id="nama" required autocomplete="off" autocapitalize="words">
+                <label><i class="fas fa-user"></i> Nama Tamu</label>
+                <input type="text" id="nama" required autocomplete="off" autocapitalize="words" placeholder="Contoh: Budi Santoso">
             </div>
             <div class="form-group">
-                <label>Jumlah Tamu</label>
-                <input type="number" id="jumlahTamu" required min="1">
+                <label><i class="fas fa-users"></i> Jumlah Tamu</label>
+                <input type="number" id="jumlahTamu" required min="1" value="2">
             </div>
             <div class="form-group">
-                <label>Nomor HP</label>
-                <input type="tel" id="noHP" required pattern="[0-9]{10,13}" title="Minimal 10 angka">
+                <label><i class="fas fa-phone"></i> Nomor HP</label>
+                <input type="tel" id="noHP" required placeholder="08123456789">
             </div>
             <div class="form-group">
-                <label>Preferensi Area</label>
+                <label><i class="fas fa-map-marker-alt"></i> Preferensi Area</label>
                 <select id="area">
                     <option value="Smoking">Smoking</option>
                     <option value="Non Smoking">Non Smoking</option>
@@ -286,7 +359,7 @@ function renderBuatReservasi(date) {
                 </select>
             </div>
             <div class="form-group">
-                <label>Catatan / Permintaan Khusus</label>
+                <label><i class="fas fa-sticky-note"></i> Catatan / Permintaan Khusus</label>
                 <textarea id="notes" rows="2" placeholder="Contoh: meja dekat jendela, kursi bayi, dll"></textarea>
             </div>
             <div class="form-group">
@@ -297,7 +370,7 @@ function renderBuatReservasi(date) {
                 </div>
             </div>
             <div class="form-group" id="mejaGroup">
-                <label>Pilih Meja (bisa lebih dari satu)</label>
+                <label><i class="fas fa-chair"></i> Pilih Meja (bisa lebih dari satu)</label>
                 <select id="meja" multiple size="5">
                     <!-- akan diisi javascript -->
                 </select>
@@ -324,12 +397,18 @@ function renderBuatReservasi(date) {
                     <option value="Transfer">Transfer</option>
                 </select>
                 <label style="margin-top:10px;">Nominal DP</label>
-                <input type="number" id="nominalDP" min="0">
+                <input type="number" id="nominalDP" min="0" placeholder="Rp">
             </div>
-            <button type="submit" class="btn">Simpan Reservasi</button>
+            <button type="submit" class="btn" style="background: #2ecc71;">
+                <i class="fas fa-save"></i> Simpan Reservasi
+            </button>
         </form>
     `;
     contentEl.innerHTML = html;
+
+    document.getElementById('gantiTanggalBtn').addEventListener('click', () => {
+        loadPage('datePicker', { type: 'buatReservasi' });
+    });
 
     function loadMejaOptions() {
         const area = document.getElementById('area').value;
@@ -375,10 +454,26 @@ function renderBuatReservasi(date) {
 
     document.getElementById('reservasiForm').addEventListener('submit', (e) => {
         e.preventDefault();
-        const tanggal = document.getElementById('tanggal').value;
-        const nama = document.getElementById('nama').value;
+        
+        // Validasi sederhana
+        const nama = document.getElementById('nama').value.trim();
         const jumlahTamu = parseInt(document.getElementById('jumlahTamu').value);
-        const noHP = document.getElementById('noHP').value;
+        const noHP = document.getElementById('noHP').value.trim();
+        
+        if (!nama) {
+            alert('Nama tamu harus diisi');
+            return;
+        }
+        if (!jumlahTamu || jumlahTamu < 1) {
+            alert('Jumlah tamu minimal 1');
+            return;
+        }
+        if (!noHP) {
+            alert('Nomor HP harus diisi');
+            return;
+        }
+        
+        const tanggal = document.getElementById('tanggal').value;
         const area = document.getElementById('area').value;
         const notes = document.getElementById('notes').value;
         const adaMeja = document.querySelector('input[name="adaMeja"]:checked').value;
@@ -422,7 +517,7 @@ function renderBuatReservasi(date) {
             nominalDP,
             waktuInputDP,
             urutanDP,
-            status: 'Aktif', // Aktif, Batal, Tidak Hadir
+            status: 'Aktif',
             statusKelengkapan: (nomorMeja.length > 0 && (statusAdaDP !== 'Ya' || nominalDP > 0)) ? 'Lengkap' : 'Belum Lengkap'
         };
 
@@ -437,7 +532,7 @@ function renderBuatReservasi(date) {
     });
 }
 
-// Render Tambah Meja/DP (dengan notifikasi)
+// Render Tambah Meja/DP
 function renderTambahMejaDp(date) {
     const reservations = getReservations().filter(r => r.tanggal === date && r.status === 'Aktif' && (r.nomorMeja.length === 0 || (r.statusAdaDP === 'Ya' && !r.nominalDP)));
     
@@ -469,44 +564,202 @@ function renderTambahMejaDp(date) {
     contentEl.innerHTML = html;
 }
 
-// Render List Reservasi dengan filter dan pencarian
+// Fungsi global untuk dipanggil dari onclick
+window.editReservasi = function(id) {
+    const reservation = getReservations().find(r => r.id === id);
+    if (!reservation) return;
+
+    const needMeja = reservation.nomorMeja.length === 0;
+    const needDP = reservation.statusAdaDP === 'Ya' && !reservation.nominalDP;
+
+    let html = `<form id="editForm">
+        <input type="hidden" id="editId" value="${id}">
+    `;
+    if (needMeja) {
+        html += `
+            <div class="form-group">
+                <label>Pilih Meja (bisa lebih dari satu)</label>
+                <select id="editMeja" multiple size="5">
+                    ${getAvailableTables(reservation.tanggal, id).map(t => `<option value="${t.nomorMeja}">${t.nomorMeja} (${t.area})</option>`).join('')}
+                </select>
+            </div>
+        `;
+    }
+    if (needDP) {
+        html += `
+            <div class="form-group">
+                <label>Jenis Pembayaran</label>
+                <select id="editJenisPembayaran">
+                    <option value="Cash">Cash</option>
+                    <option value="Transfer">Transfer</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Nominal DP</label>
+                <input type="number" id="editNominalDP" min="0">
+            </div>
+        `;
+    }
+    html += `<button type="submit" class="btn">Simpan</button>
+             <button type="button" class="btn btn-secondary" onclick="this.closest('.modal').remove()">Batal</button></form>`;
+    
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.innerHTML = `<div class="modal-content">${html}</div>`;
+    document.body.appendChild(modal);
+
+    document.getElementById('editForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const reservations = getReservations();
+        const idx = reservations.findIndex(r => r.id === id);
+        if (idx === -1) return;
+
+        if (needMeja) {
+            const selectedMeja = Array.from(document.getElementById('editMeja').selectedOptions).map(opt => opt.value);
+            if (selectedMeja.length === 0) {
+                alert('Pilih meja');
+                return;
+            }
+            reservations[idx].nomorMeja = selectedMeja;
+        }
+        if (needDP) {
+            const jenis = document.getElementById('editJenisPembayaran').value;
+            const nominal = parseInt(document.getElementById('editNominalDP').value);
+            if (!nominal || nominal <= 0) {
+                alert('Isi nominal DP');
+                return;
+            }
+            reservations[idx].jenisPembayaran = jenis;
+            reservations[idx].nominalDP = nominal;
+            reservations[idx].waktuInputDP = Date.now();
+            reservations[idx].urutanDP = getNextDpUrutan(reservations[idx].tanggal);
+        }
+        
+        reservations[idx].statusKelengkapan = (reservations[idx].nomorMeja.length > 0 && (reservations[idx].statusAdaDP !== 'Ya' || reservations[idx].nominalDP > 0)) ? 'Lengkap' : 'Belum Lengkap';
+        saveReservations(reservations);
+
+        document.body.removeChild(modal);
+        showNotification('Data diperbarui');
+        loadPage('tambahMejaDp', { date: reservations[idx].tanggal });
+    });
+};
+
+// Render Column Settings
+function renderColumnSettings(date) {
+    const columns = [
+        { id: 'status', label: 'Status' },
+        { id: 'nama', label: 'Nama' },
+        { id: 'jumlah', label: 'Jml' },
+        { id: 'hp', label: 'HP' },
+        { id: 'area', label: 'Area' },
+        { id: 'meja', label: 'Meja' },
+        { id: 'order', label: 'Order' },
+        { id: 'dp', label: 'DP' },
+        { id: 'urutan', label: 'Urutan' },
+        { id: 'catatan', label: 'Catatan' },
+        { id: 'aksi', label: 'Aksi' }
+    ];
+    
+    let html = `
+        <h3>Atur Kolom yang Ditampilkan</h3>
+        <p style="color: #7f8c8d;">Centang kolom yang ingin ditampilkan di tabel</p>
+        <div style="background: #f8f9fa; padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+    `;
+    
+    columns.forEach(col => {
+        html += `
+            <div style="margin-bottom: 10px;">
+                <label style="display: flex; align-items: center; gap: 10px;">
+                    <input type="checkbox" id="col_${col.id}" ${visibleColumns[col.id] ? 'checked' : ''}>
+                    ${col.label}
+                </label>
+            </div>
+        `;
+    });
+    
+    html += `
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <button class="btn" id="simpanColumnsBtn">Simpan</button>
+            <button class="btn btn-secondary" onclick="loadPage('listReservasi', {date: '${date}'})">Batal</button>
+        </div>
+    `;
+    
+    contentEl.innerHTML = html;
+    
+    document.getElementById('simpanColumnsBtn').addEventListener('click', () => {
+        columns.forEach(col => {
+            visibleColumns[col.id] = document.getElementById(`col_${col.id}`).checked;
+        });
+        localStorage.setItem('visibleColumns', JSON.stringify(visibleColumns));
+        showNotification('Pengaturan kolom disimpan');
+        loadPage('listReservasi', { date });
+    });
+}
+
+// Render List Reservasi dengan toggle view dan pengaturan kolom
 function renderListReservasi(date) {
+    // Load saved column settings
+    const savedColumns = localStorage.getItem('visibleColumns');
+    if (savedColumns) {
+        visibleColumns = JSON.parse(savedColumns);
+    }
+    
     let reservations = getReservations().filter(r => r.tanggal === date);
     
     const html = `
         <div style="margin-bottom:15px;">
-            <input type="text" id="searchInput" placeholder="🔍 Cari nama atau no HP..." style="width:100%; padding:12px; border:1px solid #ddd; border-radius:5px;">
-        </div>
-        <div class="filter-sort" style="flex-wrap:wrap;">
-            <select id="statusFilter">
-                <option value="all">Semua Status</option>
-                <option value="Aktif">Aktif</option>
-                <option value="Batal">Batal</option>
-                <option value="Tidak Hadir">Tidak Hadir</option>
-            </select>
-            <select id="kelengkapanFilter">
-                <option value="all">Semua Kelengkapan</option>
-                <option value="Lengkap">Lengkap</option>
-                <option value="Belum Lengkap">Belum Lengkap</option>
-            </select>
-            <select id="sortBy">
-                <option value="urutanDP">Urutan DP</option>
-                <option value="nomorMeja">Nomor Meja</option>
-                <option value="statusKelengkapan">Status Kelengkapan</option>
-                <option value="nama">Nama</option>
-            </select>
-            <button class="btn-secondary" id="applyFilter">Terapkan</button>
-        </div>
-        <div style="margin:10px 0; display:flex; gap:5px;">
-            <button class="btn-secondary" id="prevDayBtn"><i class="fas fa-chevron-left"></i> Sebelumnya</button>
-            <span style="flex:1; text-align:center; padding:10px; background:#ecf0f1; border-radius:5px;">
-                ${new Date(date).toLocaleDateString('id-ID', { weekday:'long', year:'numeric', month:'long', day:'numeric' })}
-            </span>
-            <button class="btn-secondary" id="nextDayBtn">Berikutnya <i class="fas fa-chevron-right"></i></button>
+            <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                <input type="text" id="searchInput" placeholder="🔍 Cari nama atau no HP..." style="flex:1; padding:12px; border:1px solid #ddd; border-radius:5px;">
+                <button class="btn-secondary" id="viewToggleBtn" style="width:50px;" title="${tableViewMode === 'list' ? 'Tampilan Card' : 'Tampilan List'}">
+                    <i class="fas fa-${tableViewMode === 'list' ? 'th-large' : 'list'}"></i>
+                </button>
+            </div>
+            
+            <div class="filter-sort" style="flex-wrap:wrap;">
+                <select id="statusFilter">
+                    <option value="all">Semua Status</option>
+                    <option value="Aktif">Aktif</option>
+                    <option value="Batal">Batal</option>
+                    <option value="Tidak Hadir">Tidak Hadir</option>
+                </select>
+                <select id="kelengkapanFilter">
+                    <option value="all">Semua Kelengkapan</option>
+                    <option value="Lengkap">Lengkap</option>
+                    <option value="Belum Lengkap">Belum Lengkap</option>
+                </select>
+                <select id="sortBy">
+                    <option value="urutanDP">Urutan DP</option>
+                    <option value="nomorMeja">Nomor Meja</option>
+                    <option value="statusKelengkapan">Status Kelengkapan</option>
+                    <option value="nama">Nama</option>
+                </select>
+                <button class="btn-secondary" id="applyFilter">Terapkan</button>
+                <button class="btn-secondary" id="columnSettingsBtn" title="Atur Kolom">
+                    <i class="fas fa-columns"></i>
+                </button>
+            </div>
+            
+            <div style="margin:10px 0; display:flex; gap:5px;">
+                <button class="btn-secondary" id="prevDayBtn"><i class="fas fa-chevron-left"></i> Sebelumnya</button>
+                <span style="flex:1; text-align:center; padding:10px; background:#ecf0f1; border-radius:5px;">
+                    ${new Date(date).toLocaleDateString('id-ID', { weekday:'long', year:'numeric', month:'long', day:'numeric' })}
+                </span>
+                <button class="btn-secondary" id="nextDayBtn">Berikutnya <i class="fas fa-chevron-right"></i></button>
+            </div>
         </div>
         <div id="listContainer"></div>
     `;
     contentEl.innerHTML = html;
+
+    document.getElementById('viewToggleBtn').addEventListener('click', () => {
+        tableViewMode = tableViewMode === 'list' ? 'card' : 'list';
+        renderFilteredList();
+    });
+    
+    document.getElementById('columnSettingsBtn').addEventListener('click', () => {
+        loadPage('columnSettings', { date });
+    });
 
     function formatDateString(dateStr, offset) {
         const d = new Date(dateStr);
@@ -551,28 +804,54 @@ function renderListReservasi(date) {
             filtered.sort((a, b) => a.nama.localeCompare(b.nama));
         }
 
-        let listHtml = '<div class="table-responsive"><table><tr>' +
-            '<th>Status</th><th>Nama</th><th>Jml</th><th>HP</th><th>Area</th><th>Meja</th><th>Order</th><th>DP</th><th>Urutan</th><th>Catatan</th><th>Aksi</th></tr>';
+        if (tableViewMode === 'list') {
+            renderTableView(filtered);
+        } else {
+            renderCardView(filtered);
+        }
+    }
+
+    function renderTableView(filtered) {
+        let listHtml = '<div class="table-responsive"><table><tr>';
+        
+        // Header berdasarkan visibleColumns
+        if (visibleColumns.status) listHtml += '<th>Status</th>';
+        if (visibleColumns.nama) listHtml += '<th>Nama</th>';
+        if (visibleColumns.jumlah) listHtml += '<th>Jml</th>';
+        if (visibleColumns.hp) listHtml += '<th>HP</th>';
+        if (visibleColumns.area) listHtml += '<th>Area</th>';
+        if (visibleColumns.meja) listHtml += '<th>Meja</th>';
+        if (visibleColumns.order) listHtml += '<th>Order</th>';
+        if (visibleColumns.dp) listHtml += '<th>DP</th>';
+        if (visibleColumns.urutan) listHtml += '<th>Urutan</th>';
+        if (visibleColumns.catatan) listHtml += '<th>Catatan</th>';
+        if (visibleColumns.aksi) listHtml += '<th>Aksi</th>';
+        listHtml += '</tr>';
         
         filtered.forEach(r => {
             const statusColor = r.status === 'Aktif' ? '#2ecc71' : (r.status === 'Batal' ? '#e74c3c' : '#95a5a6');
-            listHtml += `<tr style="background:${r.statusKelengkapan === 'Lengkap' ? '#f0fff0' : '#fff0f0'}">
-                <td><span style="background:${statusColor}; color:white; padding:3px 8px; border-radius:3px; font-size:12px;">${r.status || 'Aktif'}</span></td>
-                <td><strong>${r.nama}</strong></td>
-                <td>${r.jumlahTamu}</td>
-                <td>${r.noHP}</td>
-                <td>${r.area}</td>
-                <td>${r.nomorMeja.join(', ') || '-'}</td>
-                <td>${r.statusOrder}</td>
-                <td>${r.statusAdaDP} ${r.nominalDP ? 'Rp'+r.nominalDP.toLocaleString() : ''}</td>
-                <td>${r.urutanDP || '-'}</td>
-                <td>${r.notes ? '<i class="fas fa-sticky-note" style="color:#3498db;" title="'+r.notes+'"></i>' : '-'}</td>
-                <td>
+            listHtml += `<tr style="background:${r.statusKelengkapan === 'Lengkap' ? '#f0fff0' : '#fff0f0'}">`;
+            
+            if (visibleColumns.status) {
+                listHtml += `<td><span style="background:${statusColor}; color:white; padding:3px 8px; border-radius:3px; font-size:12px;">${r.status || 'Aktif'}</span></td>`;
+            }
+            if (visibleColumns.nama) listHtml += `<td><strong>${r.nama}</strong></td>`;
+            if (visibleColumns.jumlah) listHtml += `<td>${r.jumlahTamu}</td>`;
+            if (visibleColumns.hp) listHtml += `<td>${r.noHP}</td>`;
+            if (visibleColumns.area) listHtml += `<td>${r.area}</td>`;
+            if (visibleColumns.meja) listHtml += `<td>${r.nomorMeja.join(', ') || '-'}</td>`;
+            if (visibleColumns.order) listHtml += `<td>${r.statusOrder}</td>`;
+            if (visibleColumns.dp) listHtml += `<td>${r.statusAdaDP} ${r.nominalDP ? 'Rp'+r.nominalDP.toLocaleString() : ''}</td>`;
+            if (visibleColumns.urutan) listHtml += `<td>${r.urutanDP || '-'}</td>`;
+            if (visibleColumns.catatan) listHtml += `<td>${r.notes ? '<i class="fas fa-sticky-note" style="color:#3498db;" title="'+r.notes+'"></i>' : '-'}</td>`;
+            if (visibleColumns.aksi) {
+                listHtml += `<td>
                     <button class="action-btn" onclick="editListReservasi('${r.id}')" title="Edit"><i class="fas fa-edit"></i></button>
                     <button class="action-btn" onclick="ubahStatusReservasi('${r.id}')" title="Ubah Status"><i class="fas fa-tag"></i></button>
                     <button class="action-btn" onclick="deleteReservasi('${r.id}')" title="Hapus"><i class="fas fa-trash"></i></button>
-                </td>
-            </tr>`;
+                </td>`;
+            }
+            listHtml += '</tr>';
         });
         listHtml += '</table></div>';
         
@@ -583,25 +862,79 @@ function renderListReservasi(date) {
         document.getElementById('listContainer').innerHTML = listHtml;
     }
 
+    function renderCardView(filtered) {
+        let cardHtml = '<div style="display: grid; gap: 10px;">';
+        
+        filtered.forEach(r => {
+            const statusColor = r.status === 'Aktif' ? '#2ecc71' : (r.status === 'Batal' ? '#e74c3c' : '#95a5a6');
+            cardHtml += `
+                <div style="background: white; border-radius: 10px; padding: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border-left: 5px solid ${statusColor};">
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                        <div>
+                            <strong style="font-size: 18px;">${r.nama}</strong>
+                            <span style="background: ${r.statusKelengkapan === 'Lengkap' ? '#2ecc71' : '#e74c3c'}; color: white; padding: 2px 8px; border-radius: 3px; font-size: 12px; margin-left: 10px;">
+                                ${r.statusKelengkapan}
+                            </span>
+                        </div>
+                        <span style="background: ${statusColor}; color: white; padding: 3px 8px; border-radius: 3px; font-size: 12px;">${r.status || 'Aktif'}</span>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 10px; font-size: 14px;">
+                        <div><i class="fas fa-users" style="color: #3498db; width: 20px;"></i> ${r.jumlahTamu} orang</div>
+                        <div><i class="fas fa-phone" style="color: #3498db; width: 20px;"></i> ${r.noHP}</div>
+                        <div><i class="fas fa-map-marker-alt" style="color: #3498db; width: 20px;"></i> ${r.area}</div>
+                        <div><i class="fas fa-chair" style="color: #3498db; width: 20px;"></i> Meja: ${r.nomorMeja.join(', ') || '-'}</div>
+                        <div><i class="fas fa-shopping-cart" style="color: #3498db; width: 20px;"></i> Order: ${r.statusOrder}</div>
+                        <div><i class="fas fa-money-bill" style="color: #3498db; width: 20px;"></i> DP: ${r.statusAdaDP} ${r.nominalDP ? 'Rp'+r.nominalDP.toLocaleString() : ''}</div>
+                    </div>
+                    
+                    ${r.notes ? `<div style="background: #f8f9fa; padding: 8px; border-radius: 5px; margin-bottom: 10px; font-size: 13px;">
+                        <i class="fas fa-sticky-note" style="color: #3498db;"></i> ${r.notes}
+                    </div>` : ''}
+                    
+                    <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                        <button class="action-btn" onclick="editListReservasi('${r.id}')" title="Edit"><i class="fas fa-edit"></i></button>
+                        <button class="action-btn" onclick="ubahStatusReservasi('${r.id}')" title="Ubah Status"><i class="fas fa-tag"></i></button>
+                        <button class="action-btn" onclick="deleteReservasi('${r.id}')" title="Hapus"><i class="fas fa-trash"></i></button>
+                    </div>
+                </div>
+            `;
+        });
+        
+        cardHtml += '</div>';
+        
+        if (filtered.length === 0) {
+            cardHtml = '<p style="text-align:center; padding:20px;">Tidak ada reservasi yang cocok</p>';
+        }
+        
+        document.getElementById('listContainer').innerHTML = cardHtml;
+    }
+
     renderFilteredList();
 
     document.getElementById('applyFilter').addEventListener('click', renderFilteredList);
     document.getElementById('searchInput').addEventListener('keyup', renderFilteredList);
 }
 
-// Fungsi ubah status reservasi (No Show / Batal)
+// Fungsi ubah status reservasi
 window.ubahStatusReservasi = function(id) {
     const reservation = getReservations().find(r => r.id === id);
     if (!reservation) return;
 
     const html = `
         <div class="modal-content">
-            <h3>Ubah Status Reservasi</h3>
+            <h3><i class="fas fa-tag"></i> Ubah Status Reservasi</h3>
             <p><strong>${reservation.nama}</strong> - ${reservation.tanggal}</p>
-            <div style="margin:20px 0;">
-                <button class="btn" onclick="setStatusReservasi('${id}', 'Aktif')" style="background:#2ecc71;">Aktif</button>
-                <button class="btn" onclick="setStatusReservasi('${id}', 'Tidak Hadir')" style="background:#95a5a6;">Tidak Hadir</button>
-                <button class="btn" onclick="setStatusReservasi('${id}', 'Batal')" style="background:#e74c3c;">Batal</button>
+            <div style="display: grid; gap: 10px; margin:20px 0;">
+                <button class="btn" onclick="setStatusReservasi('${id}', 'Aktif')" style="background:#2ecc71;">
+                    <i class="fas fa-check-circle"></i> Aktif
+                </button>
+                <button class="btn" onclick="setStatusReservasi('${id}', 'Tidak Hadir')" style="background:#95a5a6;">
+                    <i class="fas fa-user-slash"></i> Tidak Hadir
+                </button>
+                <button class="btn" onclick="setStatusReservasi('${id}', 'Batal')" style="background:#e74c3c;">
+                    <i class="fas fa-ban"></i> Batal
+                </button>
             </div>
             <button class="btn btn-secondary" onclick="this.closest('.modal').remove()">Tutup</button>
         </div>
@@ -691,7 +1024,6 @@ window.editListReservasi = function(id) {
         
         const selectedMeja = Array.from(document.getElementById('editMeja').selectedOptions).map(opt => opt.value);
         
-        // Cek double booking
         const otherReservations = reservations.filter(r => r.tanggal === reservations[idx].tanggal && r.id !== id && r.status !== 'Batal' && r.status !== 'Tidak Hadir');
         const occupied = new Set();
         otherReservations.forEach(r => r.nomorMeja.forEach(m => occupied.add(m)));
@@ -725,12 +1057,11 @@ window.deleteReservasi = function(id) {
     const reservation = getReservations().find(r => r.id === id);
     if (!reservation) return;
     
-    // Modal konfirmasi kustom
     const html = `
         <div class="modal-content">
-            <h3>Hapus Reservasi</h3>
-            <p>Yakin ingin menghapus reservasi <strong>${reservation.nama}</strong> untuk tanggal ${reservation.tanggal}?</p>
-            <p style="color:#e74c3c;">Tindakan ini tidak dapat dibatalkan!</p>
+            <h3><i class="fas fa-trash" style="color:#e74c3c;"></i> Hapus Reservasi</h3>
+            <p>Yakin ingin menghapus reservasi <strong>${reservation.nama}</strong>?</p>
+            <p style="color:#7f8c8d;">Tanggal: ${reservation.tanggal}</p>
             <div style="display:flex; gap:10px; margin-top:20px;">
                 <button class="btn btn-danger" id="confirmDelete">Ya, Hapus</button>
                 <button class="btn btn-secondary" onclick="this.closest('.modal').remove()">Batal</button>
@@ -764,13 +1095,30 @@ function renderCekMeja(date) {
     const tablesWithStatus = getAllTablesWithStatus(date);
     const areas = ['Smoking', 'Non Smoking', 'Tambahan'];
     
-    let html = `<h3 style="margin-bottom:15px;">Meja - ${new Date(date).toLocaleDateString('id-ID')}</h3>`;
+    let html = `
+        <div style="background: #f8f9fa; padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+                <div>
+                    <i class="fas fa-calendar-alt" style="color: #3498db; margin-right: 10px;"></i>
+                    <strong>${new Date(date).toLocaleDateString('id-ID', { weekday:'long', year:'numeric', month:'long', day:'numeric' })}</strong>
+                </div>
+                <button class="btn-secondary" onclick="loadPage('datePicker', {type:'cekMeja'})">
+                    <i class="fas fa-exchange-alt"></i> Ganti Tanggal
+                </button>
+            </div>
+        </div>
+    `;
     
     areas.forEach(area => {
         const areaTables = tablesWithStatus.filter(t => t.area === area);
         html += `
             <div class="area-section" style="margin-bottom:20px;">
-                <h4>${area} (${areaTables.length})</h4>
+                <h4 style="display: flex; justify-content: space-between;">
+                    <span>${area}</span>
+                    <span style="background: #3498db; color: white; padding: 2px 10px; border-radius: 15px; font-size: 14px;">
+                        ${areaTables.filter(t => !t.isOccupied).length} tersedia
+                    </span>
+                </h4>
                 <div style="display:flex; flex-wrap:wrap; gap:8px;">
         `;
         
@@ -783,10 +1131,9 @@ function renderCekMeja(date) {
                      data-meja="${t.nomorMeja}" 
                      data-occupied="${t.isOccupied}"
                      data-occupant='${JSON.stringify(t.occupant)}'
-                     style="position:relative; cursor:pointer; ${t.isOccupied ? 'background:#e74c3c;' : ''}"
+                     style="position:relative; cursor:pointer; ${t.isOccupied ? 'background:#e74c3c;' : 'background:#27ae60;'}"
                      title="${title}">
                     ${t.nomorMeja}
-                    ${t.isOccupied ? '<i class="fas fa-user" style="position:absolute; bottom:2px; right:2px; font-size:8px;"></i>' : ''}
                 </div>
             `;
         });
@@ -796,7 +1143,6 @@ function renderCekMeja(date) {
     
     contentEl.innerHTML = html;
     
-    // Event listener untuk semua meja
     document.querySelectorAll('.table-item').forEach(item => {
         item.addEventListener('click', (e) => {
             const meja = e.currentTarget.dataset.meja;
@@ -804,7 +1150,7 @@ function renderCekMeja(date) {
             
             if (isOccupied) {
                 const occupant = JSON.parse(e.currentTarget.dataset.occupant);
-                showTableDetail(meja, occupant);
+                showTableDetail(meja, occupant, date);
             } else {
                 if (confirm(`Buat reservasi baru dengan meja ${meja}?`)) {
                     selectedMejaForReservasi = meja;
@@ -816,15 +1162,19 @@ function renderCekMeja(date) {
 }
 
 // Detail meja terisi
-function showTableDetail(meja, occupant) {
+function showTableDetail(meja, occupant, date) {
     const html = `
         <div class="modal-content">
-            <h3>Detail Meja ${meja}</h3>
-            <p><strong>Dipesan oleh:</strong> ${occupant.nama}</p>
-            <p><strong>ID Reservasi:</strong> ${occupant.id}</p>
-            <p><strong>Status:</strong> ${occupant.status || 'Aktif'}</p>
-            <div style="display:flex; gap:10px; margin-top:20px;">
-                <button class="btn" onclick="loadPage('listReservasi', {date:'${selectedDate}'}); this.closest('.modal').remove();">Lihat Reservasi</button>
+            <h3><i class="fas fa-chair"></i> Detail Meja ${meja}</h3>
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 15px 0;">
+                <p><strong>Dipesan oleh:</strong> ${occupant.nama}</p>
+                <p><strong>ID Reservasi:</strong> ${occupant.id}</p>
+                <p><strong>Status:</strong> <span style="background: #2ecc71; color: white; padding: 2px 8px; border-radius: 3px;">${occupant.status || 'Aktif'}</span></p>
+            </div>
+            <div style="display:flex; gap:10px;">
+                <button class="btn" onclick="loadPage('listReservasi', {date:'${date}'}); this.closest('.modal').remove();">
+                    <i class="fas fa-list"></i> Lihat Reservasi
+                </button>
                 <button class="btn btn-secondary" onclick="this.closest('.modal').remove()">Tutup</button>
             </div>
         </div>
@@ -836,7 +1186,7 @@ function showTableDetail(meja, occupant) {
     document.body.appendChild(modal);
 }
 
-// Render Kelola Meja (tetap sama seperti sebelumnya)
+// Render Kelola Meja
 function renderKelolaMeja() {
     const tables = getTables();
     let html = `
@@ -851,8 +1201,8 @@ function renderKelolaMeja() {
             <td>${t.area}</td>
             <td>${t.kapasitas}</td>
             <td>
-                <button class="action-btn" onclick="editMeja('${t.nomorMeja}')"><i class="fas fa-edit"></i></button>
-                <button class="action-btn" onclick="deleteMeja('${t.nomorMeja}')"><i class="fas fa-trash"></i></button>
+                <button class="action-btn" onclick="editMeja('${t.nomorMeja}')" title="Edit"><i class="fas fa-edit"></i></button>
+                <button class="action-btn" onclick="deleteMeja('${t.nomorMeja}')" title="Hapus"><i class="fas fa-trash"></i></button>
             </td>
         </tr>`;
     });
@@ -866,11 +1216,12 @@ function renderKelolaMeja() {
 
 // Render Activity Log
 function renderActivityLog() {
-    const logs = getLogs().reverse(); // Tampilkan yang terbaru dulu
+    const logs = getLogs().reverse();
     
     let html = `
-        <div style="margin-bottom:15px;">
+        <div style="margin-bottom:15px; display: flex; gap: 10px;">
             <button class="btn btn-secondary" onclick="exportLogs()"><i class="fas fa-download"></i> Ekspor Log</button>
+            <button class="btn btn-secondary" onclick="loadPage('home')"><i class="fas fa-home"></i> Home</button>
         </div>
         <div class="activity-log" style="max-height:70vh; overflow-y:auto;">
     `;
@@ -951,6 +1302,7 @@ function showMejaModal(meja = null) {
     const isEdit = !!meja;
     const html = `
         <form id="mejaForm">
+            <h3>${isEdit ? 'Edit Meja' : 'Tambah Meja'}</h3>
             <div class="form-group">
                 <label>Nomor Meja</label>
                 <input type="text" id="nomorMeja" value="${meja ? meja.nomorMeja : ''}" ${isEdit ? 'readonly' : 'required'} placeholder="Contoh: 01, 02, ...">
@@ -1016,7 +1368,7 @@ function showMejaModal(meja = null) {
 function showNotification(msg) {
     const notif = document.createElement('div');
     notif.className = 'notification';
-    notif.textContent = msg;
+    notif.innerHTML = `<i class="fas fa-check-circle"></i> ${msg}`;
     document.body.appendChild(notif);
     setTimeout(() => {
         notif.remove();
