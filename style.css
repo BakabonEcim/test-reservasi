@@ -355,3 +355,240 @@ tr:hover {
 .badge-notification {
     animation: pulse 1s infinite;
 }
+/* Dashboard Cards */
+.dashboard-card {
+    background: white;
+    border-radius: 15px;
+    padding: 20px 10px;
+    color: white;
+    text-align: center;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    transition: transform 0.3s;
+}
+
+.dashboard-card:active {
+    transform: scale(0.98);
+}
+
+.dashboard-card .value {
+    font-size: 36px;
+    font-weight: bold;
+    margin: 10px 0;
+    line-height: 1.2;
+}
+
+/* Quick Date Buttons */
+.quick-date-btn {
+    cursor: pointer;
+    transition: all 0.3s;
+    border: 2px solid transparent !important;
+}
+
+.quick-date-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.quick-date-btn:active {
+    transform: translateY(0);
+}
+
+/* Badge Notifikasi */
+.badge-notification {
+    display: inline-block;
+    background: #f1c40f;
+    color: #333;
+    font-weight: bold;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 14px;
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+/* Tombol Aksi */
+.action-btn {
+    background: none;
+    border: none;
+    color: #3498db;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 5px;
+    transition: background 0.3s;
+}
+
+.action-btn:hover {
+    background: #f0f0f0;
+}
+
+.action-btn .fa-trash { color: #e74c3c; }
+.action-btn .fa-tag { color: #f39c12; }
+
+/* Card View */
+.card-view {
+    background: white;
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 10px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    border-left: 5px solid #3498db;
+}
+
+/* Table Styles */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+th {
+    background: #34495e;
+    color: white;
+    padding: 12px;
+    font-weight: 500;
+    text-align: left;
+}
+
+td {
+    padding: 10px 12px;
+    border-bottom: 1px solid #ecf0f1;
+}
+
+tr:last-child td {
+    border-bottom: none;
+}
+
+/* Filter Section */
+.filter-sort {
+    display: flex;
+    gap: 8px;
+    margin: 15px 0;
+    flex-wrap: wrap;
+}
+
+.filter-sort select, .filter-sort button {
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid #ddd;
+    background: white;
+    font-size: 14px;
+}
+
+.filter-sort button {
+    background: #3498db;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+.filter-sort button.btn-secondary {
+    background: #95a5a6;
+}
+
+/* Table Grid */
+.table-item {
+    width: 65px;
+    height: 65px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 16px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    transition: transform 0.2s;
+}
+
+.table-item:hover {
+    transform: scale(1.05);
+}
+
+.table-item.occupied {
+    background: #e74c3c !important;
+}
+
+/* Modal */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: fadeIn 0.3s;
+}
+
+.modal-content {
+    background: white;
+    padding: 25px;
+    border-radius: 15px;
+    width: 90%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: slideUp 0.3s;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideUp {
+    from { transform: translateY(50px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+/* Notifikasi */
+.notification {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #2ecc71;
+    color: white;
+    padding: 15px 30px;
+    border-radius: 50px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    z-index: 2000;
+    animation: slideUp 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 16px;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+    .dashboard-card .value {
+        font-size: 28px;
+    }
+    
+    .table-item {
+        width: 55px;
+        height: 55px;
+        font-size: 14px;
+    }
+    
+    .filter-sort {
+        flex-direction: column;
+    }
+    
+    .filter-sort select, .filter-sort button {
+        width: 100%;
+    }
+}
