@@ -487,3 +487,58 @@ th {
     background: #6c757d;
     color: white;
 }
+/* Tambahan CSS untuk format nominal */
+.nominal-format {
+    font-family: monospace;
+    font-size: 14px;
+}
+
+/* Style untuk input nominal */
+#nominal-dp, #tambah-dp-nominal {
+    text-align: right;
+}
+
+/* Dashboard menu grid baru */
+.menu-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.menu-btn {
+    background: #4a90e2;
+    color: white;
+    border: none;
+    padding: 16px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.menu-btn:hover {
+    background: #357ab8;
+}
+
+/* Status badge colors */
+.status-lengkap {
+    background: #28a745;
+    color: white;
+}
+
+.status-belum-ada-meja {
+    background: #dc3545;
+    color: white;
+}
+
+.status-belum-ada-dp {
+    background: #ffc107;
+    color: #333;
+}
+
+.status-belum-ada-meja-dp {
+    background: #6c757d;
+    color: white;
+}
