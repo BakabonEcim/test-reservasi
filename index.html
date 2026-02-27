@@ -1,46 +1,102 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8" />
-  <title>Reservasi Resto Internal</title>
-  <link rel="stylesheet" href="style.css" />
-
-  // Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-// Your web app's Firebase configuration
-const firebaseConfig = {
-  apiKey: "AIzaSyD0r4H0CVS45gbnO9HILt8VStX77KPA0bQ",
-  authDomain: "reservasi-574aa.firebaseapp.com",
-  projectId: "reservasi-574aa",
-  storageBucket: "reservasi-574aa.firebasestorage.app",
-  messagingSenderId: "357990257039",
-  appId: "1:357990257039:web:3398c968da7b24490cbbfa"
-};
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-    window.db = getFirestore(app);
-  </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>Reservasi Restoran - Internal</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <div id="app">
+        <!-- Dashboard -->
+        <div id="dashboard-page" class="page active">
+            <h1>Dashboard Restoran</h1>
+            <div class="date-info">Hari ini: <span id="current-date"></span></div>
+            <div class="menu-grid">
+                <button class="menu-btn" data-action="buat">➕ Buat Reservasi Baru</button>
+                <button class="menu-btn" data-action="tambah">🪑 Tambah Meja / DP</button>
+                <button class="menu-btn" data-action="list">📋 List Reservasi</button>
+                <button class="menu-btn" data-action="cek">🔍 Cek Meja Kosong</button>
+                <button class="menu-btn" data-action="atur-meja">⚙️ Atur Meja</button>
+            </div>
+        </div>
 
-  <div id="app">
-    <h1>Dashboard Reservasi</h1>
-    <div id="todayInfo"></div>
+        <!-- Halaman Buat Reservasi (A) -->
+        <div id="buat-page" class="page">
+            <h2>➕ Buat Reservasi Baru</h2>
+            <div class="date-picker-container">
+                <label>Pilih Tanggal: <input type="date" id="buat-tanggal" class="date-picker"></label>
+                <button class="btn-ganti-tanggal">Ganti Tanggal</button>
+            </div>
+            <form id="form-reservasi" style="display: none;">
+                <!-- fields akan diisi JS -->
+            </form>
+            <div id="step-container"></div>
+            <button class="back-btn">← Kembali ke Dashboard</button>
+        </div>
 
-    <div class="menu">
-      <button onclick="goCreate()">Buat Reservasi</button>
-      <button onclick="goComplete()">Tambah Meja / DP</button>
-      <button onclick="goList()">List Reservasi</button>
-      <button onclick="goCheck()">Cek Meja Kosong</button>
+        <!-- Halaman Tambah Meja / DP (B) -->
+        <div id="tambah-page" class="page">
+            <h2>🪑 Tambah Meja / DP</h2>
+            <div class="date-picker-container">
+                <label>Pilih Tanggal: <input type="date" id="tambah-tanggal" class="date-picker"></label>
+                <button class="btn-load-tanggal">Muat</button>
+            </div>
+            <div id="daftar-reservasi-belum-lengkap"></div>
+            <div id="form-lengkapi" style="display: none;"></div>
+            <button class="back-btn">← Kembali ke Dashboard</button>
+        </div>
+
+        <!-- Halaman List Reservasi (C) -->
+        <div id="list-page" class="page">
+            <h2>📋 List Reservasi</h2>
+            <div class="date-picker-container">
+                <label>Pilih Tanggal: <input type="date" id="list-tanggal" class="date-picker"></label>
+                <button class="btn-load-tanggal">Muat</button>
+            </div>
+            <div class="list-controls">
+                <button id="toggle-view">📱 Tampilan Card</button>
+                <button id="atur-kolom">⚙️ Atur Kolom</button>
+                <select id="sort-by">
+                    <option value="urutanDP">Urutan DP</option>
+                    <option value="nomorMeja">Nomor Meja</option>
+                    <option value="kelengkapan">Status Kelengkapan</option>
+                </select>
+            </div>
+            <div id="list-container"></div>
+            <button class="back-btn">← Kembali ke Dashboard</button>
+        </div>
+
+        <!-- Halaman Cek Meja Kosong (D) -->
+        <div id="cek-page" class="page">
+            <h2>🔍 Cek Meja Kosong</h2>
+            <div class="date-picker-container">
+                <label>Pilih Tanggal: <input type="date" id="cek-tanggal" class="date-picker"></label>
+                <button class="btn-load-tanggal">Muat</button>
+            </div>
+            <div id="meja-kosong-container"></div>
+            <button class="back-btn">← Kembali ke Dashboard</button>
+        </div>
+
+        <!-- Halaman Atur Meja -->
+        <div id="atur-meja-page" class="page">
+            <h2>⚙️ Atur Meja</h2>
+            <button id="tambah-meja">➕ Tambah Meja Baru</button>
+            <div id="daftar-meja"></div>
+            <button class="back-btn">← Kembali ke Dashboard</button>
+        </div>
+
+        <!-- Modal untuk Atur Kolom -->
+        <div id="modal-kolom" class="modal" style="display: none;">
+            <div class="modal-content">
+                <h3>Atur Kolom yang Ditampilkan</h3>
+                <div id="kolom-list"></div>
+                <button id="simpan-kolom">Simpan</button>
+                <button id="tutup-modal">Tutup</button>
+            </div>
+        </div>
     </div>
 
-    <div id="content"></div>
-  </div>
-
-  <script type="module" src="app.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
