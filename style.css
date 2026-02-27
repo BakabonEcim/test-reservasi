@@ -67,10 +67,12 @@ h1, h2 {
     font-weight: bold;
 }
 
+/* Menu Grid baru */
 .menu-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 12px;
+    margin-top: 20px;
 }
 
 .menu-btn {
@@ -204,7 +206,7 @@ th {
     background: white;
 }
 
-/* Grid Meja */
+/* Grid Meja - WARNA SEDERHANA */
 .meja-grid {
     display: flex;
     flex-wrap: wrap;
@@ -239,40 +241,15 @@ th {
     transform: scale(1.1);
 }
 
+/* WARNA SEDERHANA: Hijau untuk available, Abu-abu gelap untuk terisi */
 .meja-item.kosong {
     background: #28a745;
     color: white;
 }
 
 .meja-item.terisi {
-    background: #dc3545;
+    background: #495057;
     color: white;
-}
-
-.meja-item.smoking.kosong {
-    background: #dc3545;
-}
-
-.meja-item.smoking.terisi {
-    background: #a71d2a;
-}
-
-.meja-item.non-smoking.kosong {
-    background: #28a745;
-}
-
-.meja-item.non-smoking.terisi {
-    background: #1e7e34;
-}
-
-.meja-item.tambahan.kosong {
-    background: #ffc107;
-    color: #333;
-}
-
-.meja-item.tambahan.terisi {
-    background: #d39e00;
-    color: #333;
 }
 
 /* Grid Meja untuk Pilih Meja */
@@ -394,6 +371,7 @@ th {
     width: 100%;
     cursor: pointer;
 }
+
 /* Tambahan CSS */
 .required {
     color: #dc3545;
@@ -421,34 +399,6 @@ th {
     transform: scale(1.2);
 }
 
-.status-badge {
-    display: inline-block;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 12px;
-    font-weight: bold;
-}
-
-.status-lengkap {
-    background: #28a745;
-    color: white;
-}
-
-.status-belum-meja {
-    background: #dc3545;
-    color: white;
-}
-
-.status-belum-dp {
-    background: #ffc107;
-    color: #333;
-}
-
-.status-belum-meja-dp {
-    background: #6c757d;
-    color: white;
-}
-/* Tambahan CSS untuk checkbox */
 .checkbox-group {
     margin: 15px 0;
 }
@@ -468,61 +418,14 @@ th {
 }
 
 /* Status badge colors */
-.status-lengkap {
-    background: #28a745;
-    color: white;
-}
-
-.status-belum-ada-meja {
-    background: #dc3545;
-    color: white;
-}
-
-.status-belum-ada-dp {
-    background: #ffc107;
-    color: #333;
-}
-
-.status-belum-ada-meja-&-dp {
-    background: #6c757d;
-    color: white;
-}
-/* Tambahan CSS untuk format nominal */
-.nominal-format {
-    font-family: monospace;
-    font-size: 14px;
-}
-
-/* Style untuk input nominal */
-#nominal-dp, #tambah-dp-nominal {
-    text-align: right;
-}
-
-/* Dashboard menu grid baru */
-.menu-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    margin-top: 20px;
-}
-
-.menu-btn {
-    background: #4a90e2;
-    color: white;
-    border: none;
-    padding: 16px;
-    border-radius: 8px;
-    font-size: 16px;
+.status-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
     font-weight: bold;
-    cursor: pointer;
-    transition: background 0.2s;
 }
 
-.menu-btn:hover {
-    background: #357ab8;
-}
-
-/* Status badge colors */
 .status-lengkap {
     background: #28a745;
     color: white;
@@ -540,5 +443,25 @@ th {
 
 .status-belum-ada-meja-dp {
     background: #6c757d;
+    color: white;
+}
+
+/* Tombol Aksi tanpa emoji */
+.action-btn {
+    padding: 5px 10px;
+    margin: 0 3px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.edit-btn {
+    background: #ffc107;
+    color: #333;
+}
+
+.hapus-btn {
+    background: #dc3545;
     color: white;
 }
