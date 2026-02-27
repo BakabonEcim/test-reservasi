@@ -155,14 +155,14 @@ function loadMejaGrid(selectedMejas = []) {
     const container = document.getElementById('meja-grid-container');
     let html = '';
     
-    // Kelompokkan berdasarkan area
-    const smoking = semuaMeja.filter(m => m.area === 'Smoking');
+    // Kelompokkan berdasarkan area - URUTAN: Non Smoking dulu, lalu Smoking, lalu Tambahan
     const nonSmoking = semuaMeja.filter(m => m.area === 'Non Smoking');
+    const smoking = semuaMeja.filter(m => m.area === 'Smoking');
     const tambahan = semuaMeja.filter(m => m.area === 'Tambahan');
     
-    if (smoking.length) {
-        html += '<div class="meja-area">🚬 Smoking</div>';
-        smoking.forEach(m => {
+    if (nonSmoking.length) {
+        html += '<div class="meja-area">🚭 Non Smoking</div>';
+        nonSmoking.forEach(m => {
             const tersedia = !mejaTerpakai.includes(m.nomorMeja);
             const isSelected = selectedMejas.includes(m.nomorMeja);
             html += `<div class="meja-pilih-item ${tersedia ? 'tersedia' : ''} ${isSelected ? 'selected' : ''}" 
@@ -174,9 +174,9 @@ function loadMejaGrid(selectedMejas = []) {
         });
     }
     
-    if (nonSmoking.length) {
-        html += '<div class="meja-area">🚭 Non Smoking</div>';
-        nonSmoking.forEach(m => {
+    if (smoking.length) {
+        html += '<div class="meja-area">🚬 Smoking</div>';
+        smoking.forEach(m => {
             const tersedia = !mejaTerpakai.includes(m.nomorMeja);
             const isSelected = selectedMejas.includes(m.nomorMeja);
             html += `<div class="meja-pilih-item ${tersedia ? 'tersedia' : ''} ${isSelected ? 'selected' : ''}" 
@@ -347,10 +347,11 @@ function loadReservasiButuhMeja() {
     let html = '<h3>Pilih reservasi untuk ditambahkan meja:</h3>';
     butuhMeja.forEach(r => {
         const status = getStatusKelengkapan(r);
+        const statusClass = status.toLowerCase().replace(/ /g, '-').replace(/&/g, '');
         html += `<div class="card-item" data-id="${r.id}">
             <div><strong>${r.nama}</strong> - ${r.jumlahTamu} org</div>
             <div>HP: ${r.noHp} | Area: ${r.area}</div>
-            <div>Status: <span class="status-badge status-${status.toLowerCase().replace(/ /g, '-')}">${status}</span></div>
+            <div>Status: <span class="status-badge status-${statusClass}">${status}</span></div>
             <button class="btn-pilih-tambah-meja" data-id="${r.id}">Pilih untuk Tambah Meja</button>
         </div>`;
     });
@@ -376,13 +377,14 @@ function tampilkanFormTambahMeja(id) {
     let html = '<h3>Tambah Meja untuk ' + reservasi.nama + '</h3>';
     html += '<div class="meja-pilih-grid" id="grid-tambah-meja">';
     
-    const smoking = semuaMeja.filter(m => m.area === 'Smoking');
+    // URUTAN: Non Smoking dulu, lalu Smoking, lalu Tambahan
     const nonSmoking = semuaMeja.filter(m => m.area === 'Non Smoking');
+    const smoking = semuaMeja.filter(m => m.area === 'Smoking');
     const tambahan = semuaMeja.filter(m => m.area === 'Tambahan');
     
-    if (smoking.length) {
-        html += '<div class="meja-area">🚬 Smoking</div>';
-        smoking.forEach(m => {
+    if (nonSmoking.length) {
+        html += '<div class="meja-area">🚭 Non Smoking</div>';
+        nonSmoking.forEach(m => {
             const tersedia = !mejaTerpakai.includes(m.nomorMeja);
             html += `<div class="meja-pilih-item ${tersedia ? 'tersedia' : ''}" 
                          data-meja="${m.nomorMeja}" 
@@ -393,9 +395,9 @@ function tampilkanFormTambahMeja(id) {
         });
     }
     
-    if (nonSmoking.length) {
-        html += '<div class="meja-area">🚭 Non Smoking</div>';
-        nonSmoking.forEach(m => {
+    if (smoking.length) {
+        html += '<div class="meja-area">🚬 Smoking</div>';
+        smoking.forEach(m => {
             const tersedia = !mejaTerpakai.includes(m.nomorMeja);
             html += `<div class="meja-pilih-item ${tersedia ? 'tersedia' : ''}" 
                          data-meja="${m.nomorMeja}" 
@@ -455,16 +457,21 @@ function tampilkanFormTambahMeja(id) {
     });
 }
 
-// ================== FITUR B2: TAMBAH DP ==================
+// ================== FITUR B2: TAMBAH DP (PERBAIKAN) ==================
 document.querySelector('#tambah-dp-page .btn-load-tanggal').addEventListener('click', loadReservasiButuhDP);
 
 function loadReservasiButuhDP() {
     const tanggal = document.getElementById('tambah-dp-tanggal').value;
+    
+    // PERBAIKAN: Filter reservasi yang butuh DP (status DP Ya tapi belum ada nominal)
+    // Ini mencakup status 'Belum ada DP' dan 'Belum ada Meja & DP'
     const butuhDP = reservations.filter(r => 
         r.tanggal === tanggal && 
         r.statusDP === 'Ya' && 
         (!r.nominalDP || r.nominalDP <= 0)
     );
+    
+    console.log('Reservasi butuh DP:', butuhDP); // Untuk debugging
     
     const container = document.getElementById('daftar-reservasi-butuh-dp');
     if (butuhDP.length === 0) {
@@ -475,11 +482,12 @@ function loadReservasiButuhDP() {
     let html = '<h3>Pilih reservasi untuk ditambahkan DP:</h3>';
     butuhDP.forEach(r => {
         const status = getStatusKelengkapan(r);
+        const statusClass = status.toLowerCase().replace(/ /g, '-').replace(/&/g, '');
         html += `<div class="card-item" data-id="${r.id}">
             <div><strong>${r.nama}</strong> - ${r.jumlahTamu} org</div>
             <div>HP: ${r.noHp} | Area: ${r.area}</div>
             <div>Meja: ${r.nomorMeja ? r.nomorMeja.join(', ') : '-'}</div>
-            <div>Status: <span class="status-badge status-${status.toLowerCase().replace(/ /g, '-')}">${status}</span></div>
+            <div>Status: <span class="status-badge status-${statusClass}">${status}</span></div>
             <button class="btn-pilih-tambah-dp" data-id="${r.id}">Pilih untuk Tambah DP</button>
         </div>`;
     });
@@ -503,8 +511,8 @@ function tampilkanFormTambahDP(id) {
         <div class="form-group">
             <label>Jenis Pembayaran</label>
             <select id="tambah-dp-jenis">
-                <option value="Cash">Cash</option>
                 <option value="Transfer">Transfer</option>
+                <option value="Cash">Cash</option>
             </select>
         </div>
         <div class="form-group">
@@ -593,7 +601,7 @@ function loadListReservasi() {
     } else {
         let html = '<div class="card-view">';
         list.forEach(r => {
-            const statusClass = r.statusKelengkapan.toLowerCase().replace(/ /g, '-');
+            const statusClass = r.statusKelengkapan.toLowerCase().replace(/ /g, '-').replace(/&/g, '');
             html += `<div class="card-item" data-id="${r.id}">
                 <div><strong>${r.nama}</strong> (${r.jumlahTamu} org)</div>
                 <div>Meja: ${r.nomorMeja ? r.nomorMeja.join(', ') : '-'}</div>
@@ -641,7 +649,7 @@ function formatKolom(r, k) {
     if (k === 'nominalDP') return r.nominalDP ? 'Rp '+r.nominalDP : '-';
     if (k === 'urutanDP') return r.urutanDP || '-';
     if (k === 'statusKelengkapan') {
-        const statusClass = r.statusKelengkapan.toLowerCase().replace(/ /g, '-');
+        const statusClass = r.statusKelengkapan.toLowerCase().replace(/ /g, '-').replace(/&/g, '');
         return `<span class="status-badge status-${statusClass}">${r.statusKelengkapan}</span>`;
     }
     return r[k] || '-';
@@ -675,7 +683,7 @@ function editReservasi(id) {
     
     if (document.getElementById('punya-dp').checked) {
         document.getElementById('dp-container').style.display = 'block';
-        document.getElementById('jenis-pembayaran').value = reservasi.jenisPembayaran || 'Cash';
+        document.getElementById('jenis-pembayaran').value = reservasi.jenisPembayaran || 'Transfer';
         document.getElementById('nominal-dp').value = reservasi.nominalDP || '';
     } else {
         document.getElementById('dp-container').style.display = 'none';
@@ -737,7 +745,7 @@ document.getElementById('tutup-modal').addEventListener('click', () => {
     document.getElementById('modal-kolom').style.display = 'none';
 });
 
-// ================== FITUR D: CEK MEJA KOSONG ==================
+// ================== FITUR D: CEK MEJA KOSONG (URUTAN DIPERBAIKI) ==================
 document.querySelector('#cek-page .btn-load-tanggal').addEventListener('click', loadMejaKosong);
 
 function loadMejaKosong() {
@@ -756,19 +764,11 @@ function loadMejaKosong() {
     const container = document.getElementById('meja-kosong-container');
     let html = '<div class="meja-grid">';
     
-    const smoking = mejaDenganStatus.filter(m => m.area === 'Smoking');
-    if (smoking.length) {
-        html += '<div class="meja-area">🚬 Smoking</div>';
-        smoking.forEach(m => {
-            html += `<div class="meja-item ${m.area.toLowerCase().replace(' ', '-')} ${m.terisi ? 'terisi' : 'kosong'}" 
-                         data-meja="${m.nomorMeja}" 
-                         data-terisi="${m.terisi}">
-                         ${m.nomorMeja}
-                    </div>`;
-        });
-    }
-    
+    // URUTAN: Non Smoking dulu, lalu Smoking, lalu Tambahan
     const nonSmoking = mejaDenganStatus.filter(m => m.area === 'Non Smoking');
+    const smoking = mejaDenganStatus.filter(m => m.area === 'Smoking');
+    const tambahan = mejaDenganStatus.filter(m => m.area === 'Tambahan');
+    
     if (nonSmoking.length) {
         html += '<div class="meja-area">🚭 Non Smoking</div>';
         nonSmoking.forEach(m => {
@@ -780,7 +780,17 @@ function loadMejaKosong() {
         });
     }
     
-    const tambahan = mejaDenganStatus.filter(m => m.area === 'Tambahan');
+    if (smoking.length) {
+        html += '<div class="meja-area">🚬 Smoking</div>';
+        smoking.forEach(m => {
+            html += `<div class="meja-item ${m.area.toLowerCase().replace(' ', '-')} ${m.terisi ? 'terisi' : 'kosong'}" 
+                         data-meja="${m.nomorMeja}" 
+                         data-terisi="${m.terisi}">
+                         ${m.nomorMeja}
+                    </div>`;
+        });
+    }
+    
     if (tambahan.length) {
         html += '<div class="meja-area">➕ Tambahan</div>';
         tambahan.forEach(m => {
@@ -838,7 +848,7 @@ function tampilkanDetailReservasi(reservasi) {
         <p><strong>Status DP:</strong> ${reservasi.statusDP || '-'}</p>
         ${reservasi.nominalDP ? `<p><strong>Nominal DP:</strong> Rp ${reservasi.nominalDP}</p>` : ''}
         ${reservasi.urutanDP ? `<p><strong>Urutan DP:</strong> ${reservasi.urutanDP}</p>` : ''}
-        <p><strong>Status:</strong> <span class="status-badge status-${reservasi.statusKelengkapan.toLowerCase().replace(/ /g, '-')}">${reservasi.statusKelengkapan}</span></p>
+        <p><strong>Status:</strong> <span class="status-badge status-${reservasi.statusKelengkapan.toLowerCase().replace(/ /g, '-').replace(/&/g, '')}">${reservasi.statusKelengkapan}</span></p>
     `;
     
     modal.style.display = 'flex';
