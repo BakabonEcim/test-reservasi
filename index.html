@@ -31,36 +31,109 @@
 
             <div class="menu-grid">
                 <button class="menu-btn" data-action="buat">➕ Buat Reservasi Baru</button>
-                <button class="menu-btn" data-action="tambah">🪑 Tambah Meja / DP</button>
+                <button class="menu-btn" data-action="tambah-meja">🪑 Tambah Meja</button>
+                <button class="menu-btn" data-action="tambah-dp">💰 Tambah DP</button>
                 <button class="menu-btn" data-action="list">📋 List Reservasi</button>
                 <button class="menu-btn" data-action="cek">🔍 Cek Meja Kosong</button>
                 <button class="menu-btn" data-action="atur-meja">⚙️ Atur Meja</button>
             </div>
         </div>
 
-        <!-- Halaman Buat Reservasi (A) -->
+        <!-- Halaman Buat Reservasi (A) - 1 Halaman Langsung -->
         <div id="buat-page" class="page">
             <h2>➕ Buat Reservasi Baru</h2>
-            <div class="date-picker-container">
-                <label>Pilih Tanggal: <input type="date" id="buat-tanggal" class="date-picker"></label>
-                <button class="btn-ganti-tanggal">Ganti Tanggal</button>
-            </div>
-            <form id="form-reservasi" style="display: none;">
-                <!-- fields akan diisi JS -->
+            <form id="form-reservasi-langsung">
+                <div class="form-group">
+                    <label>Tanggal Reservasi <span class="required">*</span></label>
+                    <input type="date" id="buat-tanggal" class="date-picker" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>Nama Tamu <span class="required">*</span></label>
+                    <input type="text" id="nama" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>Jumlah Tamu <span class="required">*</span></label>
+                    <input type="number" id="jumlah" min="1" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>Nomor HP <span class="required">*</span></label>
+                    <input type="tel" id="hp" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>Preferensi Area</label>
+                    <select id="area">
+                        <option value="Smoking">Smoking</option>
+                        <option value="Non Smoking" selected>Non Smoking</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="punya-meja"> Sudah Ada Nomor Meja?
+                    </label>
+                </div>
+
+                <div id="pilih-meja-container" style="display: none; margin-bottom: 15px;">
+                    <label>Pilih Meja (bisa lebih dari satu):</label>
+                    <div id="meja-grid-container" class="meja-pilih-grid"></div>
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="punya-order"> Sudah Ada Orderan?
+                    </label>
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="punya-dp"> Ada Pembayaran DP?
+                    </label>
+                </div>
+
+                <div id="dp-container" style="display: none;">
+                    <div class="form-group">
+                        <label>Jenis Pembayaran</label>
+                        <select id="jenis-pembayaran">
+                            <option value="Cash">Cash</option>
+                            <option value="Transfer">Transfer</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Nominal DP</label>
+                        <input type="number" id="nominal-dp" min="0">
+                    </div>
+                </div>
+
+                <button type="button" class="btn" id="simpan-reservasi">Simpan Reservasi</button>
             </form>
-            <div id="step-container"></div>
             <button class="back-btn">← Kembali ke Dashboard</button>
         </div>
 
-        <!-- Halaman Tambah Meja / DP (B) -->
-        <div id="tambah-page" class="page">
-            <h2>🪑 Tambah Meja / DP</h2>
+        <!-- Halaman Tambah Meja -->
+        <div id="tambah-meja-page" class="page">
+            <h2>🪑 Tambah Meja</h2>
             <div class="date-picker-container">
-                <label>Pilih Tanggal: <input type="date" id="tambah-tanggal" class="date-picker"></label>
+                <label>Pilih Tanggal: <input type="date" id="tambah-meja-tanggal" class="date-picker"></label>
                 <button class="btn-load-tanggal">Muat</button>
             </div>
-            <div id="daftar-reservasi-belum-lengkap"></div>
-            <div id="form-lengkapi" style="display: none;"></div>
+            <div id="daftar-reservasi-butuh-meja"></div>
+            <div id="form-tambah-meja" style="display: none;"></div>
+            <button class="back-btn">← Kembali ke Dashboard</button>
+        </div>
+
+        <!-- Halaman Tambah DP -->
+        <div id="tambah-dp-page" class="page">
+            <h2>💰 Tambah DP</h2>
+            <div class="date-picker-container">
+                <label>Pilih Tanggal: <input type="date" id="tambah-dp-tanggal" class="date-picker"></label>
+                <button class="btn-load-tanggal">Muat</button>
+            </div>
+            <div id="daftar-reservasi-butuh-dp"></div>
+            <div id="form-tambah-dp" style="display: none;"></div>
             <button class="back-btn">← Kembali ke Dashboard</button>
         </div>
 
