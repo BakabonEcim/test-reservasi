@@ -35,6 +35,27 @@ function getToday() {
     return `${year}-${month}-${day}`;
 }
 
+// Format angka dengan pemisah ribuan
+function formatRupiah(angka) {
+    if (!angka) return '';
+    const number = angka.toString().replace(/[^0-9]/g, '');
+    return number.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
+// Parse angka dari format rupiah
+function parseRupiah(rupiah) {
+    if (!rupiah) return '';
+    return rupiah.toString().replace(/[^0-9]/g, '');
+}
+
+// Capitalize first letter of each word
+function capitalizeName(nama) {
+    if (!nama) return '';
+    return nama.split(' ').map(kata => {
+        return kata.charAt(0).toUpperCase() + kata.slice(1).toLowerCase();
+    }).join(' ');
+}
+
 // Fungsi untuk menentukan status kelengkapan
 function getStatusKelengkapan(reservasi) {
     const punyaMeja = reservasi.nomorMeja && reservasi.nomorMeja.length > 0;
@@ -104,6 +125,23 @@ function showPage(pageId) {
 
 // ================== FITUR A: BUAT RESERVASI (1 HALAMAN) ==================
 let editId = null;
+
+// Auto-capitalize nama
+document.getElementById('nama').addEventListener('input', function(e) {
+    const cursorPos = this.selectionStart;
+    this.value = capitalizeName(this.value);
+    this.setSelectionRange(cursorPos, cursorPos);
+});
+
+// Format Rupiah untuk input nominal DP
+document.getElementById('nominal-dp').addEventListener('input', function(e) {
+    const value = this.value.replace(/[^0-9]/g, '');
+    if (value) {
+        this.value = formatRupiah(value);
+    } else {
+        this.value = '';
+    }
+});
 
 function resetFormReservasi() {
     editId = null;
@@ -256,7 +294,7 @@ document.getElementById('simpan-reservasi').addEventListener('click', function()
     let waktuInputDP = null;
     
     if (document.getElementById('punya-dp').checked) {
-        const nominal = document.getElementById('nominal-dp').value;
+        const nominal = parseRupiah(document.getElementById('nominal-dp').value);
         if (!nominal || nominal <= 0) {
             alert('Harap isi nominal DP');
             return;
@@ -271,7 +309,7 @@ document.getElementById('simpan-reservasi').addEventListener('click', function()
     const reservasi = {
         id: editId || (Date.now() + '-' + Math.random().toString(36).substr(2, 5)),
         tanggal: tanggal,
-        nama: nama,
+        nama: capitalizeName(nama),
         jumlahTamu: jumlah,
         noHp: hp,
         area: document.getElementById('area').value,
@@ -517,15 +555,25 @@ function tampilkanFormTambahDP(id) {
         </div>
         <div class="form-group">
             <label>Nominal DP</label>
-            <input type="number" id="tambah-dp-nominal" min="0" required>
+            <input type="text" id="tambah-dp-nominal" min="0" placeholder="Contoh: 10,000" required>
         </div>
         <button class="btn" id="simpan-tambah-dp">Simpan DP</button>
     `;
     container.innerHTML = html;
     
+    // Format Rupiah untuk input nominal DP di form tambah
+    document.getElementById('tambah-dp-nominal').addEventListener('input', function(e) {
+        const value = this.value.replace(/[^0-9]/g, '');
+        if (value) {
+            this.value = formatRupiah(value);
+        } else {
+            this.value = '';
+        }
+    });
+    
     document.getElementById('simpan-tambah-dp').addEventListener('click', function() {
         const jenis = document.getElementById('tambah-dp-jenis').value;
-        const nominal = document.getElementById('tambah-dp-nominal').value;
+        const nominal = parseRupiah(document.getElementById('tambah-dp-nominal').value);
         
         if (!nominal || nominal <= 0) {
             alert('Isi nominal DP');
@@ -605,7 +653,7 @@ function loadListReservasi() {
             html += `<div class="card-item" data-id="${r.id}">
                 <div><strong>${r.nama}</strong> (${r.jumlahTamu} org)</div>
                 <div>Meja: ${r.nomorMeja ? r.nomorMeja.join(', ') : '-'}</div>
-                <div>DP: ${r.statusDP === 'Ya' && r.nominalDP ? 'Rp '+r.nominalDP : '-'}</div>
+                <div>DP: ${r.statusDP === 'Ya' && r.nominalDP ? 'Rp ' + formatRupiah(r.nominalDP) : '-'}</div>
                 <div>Status: <span class="status-badge status-${statusClass}">${r.statusKelengkapan}</span></div>
                 <div>
                     <button class="edit-btn" data-id="${r.id}">✏️ Edit</button>
@@ -646,7 +694,7 @@ function getNamaKolom(k) {
 
 function formatKolom(r, k) {
     if (k === 'nomorMeja') return r.nomorMeja ? r.nomorMeja.join(', ') : '-';
-    if (k === 'nominalDP') return r.nominalDP ? 'Rp '+r.nominalDP : '-';
+    if (k === 'nominalDP') return r.nominalDP ? 'Rp ' + formatRupiah(r.nominalDP) : '-';
     if (k === 'urutanDP') return r.urutanDP || '-';
     if (k === 'statusKelengkapan') {
         const statusClass = r.statusKelengkapan.toLowerCase().replace(/ /g, '-').replace(/&/g, '');
@@ -684,7 +732,7 @@ function editReservasi(id) {
     if (document.getElementById('punya-dp').checked) {
         document.getElementById('dp-container').style.display = 'block';
         document.getElementById('jenis-pembayaran').value = reservasi.jenisPembayaran || 'Transfer';
-        document.getElementById('nominal-dp').value = reservasi.nominalDP || '';
+        document.getElementById('nominal-dp').value = reservasi.nominalDP ? formatRupiah(reservasi.nominalDP) : '';
     } else {
         document.getElementById('dp-container').style.display = 'none';
     }
@@ -745,7 +793,7 @@ document.getElementById('tutup-modal').addEventListener('click', () => {
     document.getElementById('modal-kolom').style.display = 'none';
 });
 
-// ================== FITUR D: CEK MEJA KOSONG (URUTAN DIPERBAIKI) ==================
+// ================== FITUR D: CEK MEJA KOSONG ==================
 document.querySelector('#cek-page .btn-load-tanggal').addEventListener('click', loadMejaKosong);
 
 function loadMejaKosong() {
@@ -846,7 +894,7 @@ function tampilkanDetailReservasi(reservasi) {
         <p><strong>Nomor Meja:</strong> ${reservasi.nomorMeja ? reservasi.nomorMeja.join(', ') : '-'}</p>
         <p><strong>Status Order:</strong> ${reservasi.statusOrder || '-'}</p>
         <p><strong>Status DP:</strong> ${reservasi.statusDP || '-'}</p>
-        ${reservasi.nominalDP ? `<p><strong>Nominal DP:</strong> Rp ${reservasi.nominalDP}</p>` : ''}
+        ${reservasi.nominalDP ? `<p><strong>Nominal DP:</strong> Rp ${formatRupiah(reservasi.nominalDP)}</p>` : ''}
         ${reservasi.urutanDP ? `<p><strong>Urutan DP:</strong> ${reservasi.urutanDP}</p>` : ''}
         <p><strong>Status:</strong> <span class="status-badge status-${reservasi.statusKelengkapan.toLowerCase().replace(/ /g, '-').replace(/&/g, '')}">${reservasi.statusKelengkapan}</span></p>
     `;
