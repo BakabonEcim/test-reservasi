@@ -39,6 +39,34 @@ h1, h2 {
     color: #666;
 }
 
+/* Dashboard Cards */
+.dashboard-cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.info-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 15px 10px;
+    border-radius: 10px;
+    text-align: center;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.info-card .card-label {
+    font-size: 12px;
+    opacity: 0.9;
+    margin-bottom: 5px;
+}
+
+.info-card .card-value {
+    font-size: 24px;
+    font-weight: bold;
+}
+
 .menu-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -176,10 +204,11 @@ th {
     background: white;
 }
 
+/* Grid Meja */
 .meja-grid {
     display: flex;
     flex-wrap: wrap;
-    gap: 10px;
+    gap: 8px;
     margin-top: 12px;
 }
 
@@ -187,37 +216,112 @@ th {
     width: 100%;
     font-weight: bold;
     margin-top: 16px;
+    margin-bottom: 8px;
     background: #e9ecef;
     padding: 8px;
     border-radius: 4px;
 }
 
 .meja-item {
-    width: 60px;
-    height: 60px;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: transform 0.2s;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.meja-item:hover {
+    transform: scale(1.1);
+}
+
+.meja-item.kosong {
+    background: #28a745;
+    color: white;
+}
+
+.meja-item.terisi {
+    background: #dc3545;
+    color: white;
+}
+
+.meja-item.smoking.kosong {
+    background: #dc3545;
+}
+
+.meja-item.smoking.terisi {
+    background: #a71d2a;
+}
+
+.meja-item.non-smoking.kosong {
+    background: #28a745;
+}
+
+.meja-item.non-smoking.terisi {
+    background: #1e7e34;
+}
+
+.meja-item.tambahan.kosong {
+    background: #ffc107;
+    color: #333;
+}
+
+.meja-item.tambahan.terisi {
+    background: #d39e00;
+    color: #333;
+}
+
+/* Grid Meja untuk Pilih Meja */
+.meja-pilih-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 15px 0;
+    max-height: 300px;
+    overflow-y: auto;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.meja-pilih-item {
+    width: 45px;
+    height: 45px;
     display: flex;
     align-items: center;
     justify-content: center;
     background: #28a745;
     color: white;
-    border-radius: 8px;
+    border-radius: 6px;
     font-weight: bold;
-    cursor: default;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 2px solid transparent;
 }
 
-.meja-item.smoking {
-    background: #dc3545;
+.meja-pilih-item.selected {
+    background: #007bff;
+    border-color: #0056b3;
+    transform: scale(1.05);
 }
 
-.meja-item.non-smoking {
+.meja-pilih-item.tersedia {
     background: #28a745;
 }
 
-.meja-item.tambahan {
-    background: #ffc107;
-    color: #333;
+.meja-pilih-item.tersedia:hover {
+    background: #218838;
 }
 
+.meja-pilih-item:active {
+    transform: scale(0.95);
+}
+
+/* Modal */
 .modal {
     position: fixed;
     top: 0; left: 0; width: 100%; height: 100%;
@@ -231,9 +335,11 @@ th {
 .modal-content {
     background: white;
     padding: 20px;
-    border-radius: 8px;
+    border-radius: 12px;
     width: 90%;
     max-width: 400px;
+    max-height: 80vh;
+    overflow-y: auto;
 }
 
 #daftar-meja .meja-item-edit {
@@ -241,8 +347,50 @@ th {
     gap: 8px;
     align-items: center;
     margin-bottom: 8px;
+    padding: 8px;
+    background: #f8f9fa;
+    border-radius: 4px;
+}
+
+#daftar-meja select {
+    padding: 4px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
 }
 
 .hidden {
     display: none;
+}
+
+/* Detail Reservasi Modal */
+#detail-reservasi {
+    margin: 15px 0;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+#detail-reservasi p {
+    margin: 8px 0;
+}
+
+#edit-detail {
+    background: #ffc107;
+    color: #333;
+    border: none;
+    padding: 10px;
+    border-radius: 4px;
+    width: 100%;
+    margin-bottom: 8px;
+    cursor: pointer;
+}
+
+#tutup-detail {
+    background: #6c757d;
+    color: white;
+    border: none;
+    padding: 10px;
+    border-radius: 4px;
+    width: 100%;
+    cursor: pointer;
 }
