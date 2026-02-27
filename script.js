@@ -55,8 +55,10 @@ function updateDashboardCards() {
 document.querySelectorAll('.menu-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
         const action = e.target.dataset.action;
-        if (action === 'buat') showPage('buat-page');
-        else if (action === 'tambah') showPage('tambah-page');
+        if (action === 'buat') {
+            showPage('buat-page');
+            resetBuatForm();
+        } else if (action === 'tambah') showPage('tambah-page');
         else if (action === 'list') showPage('list-page');
         else if (action === 'cek') showPage('cek-page');
         else if (action === 'atur-meja') showPage('atur-meja-page');
@@ -75,7 +77,10 @@ function showPage(pageId) {
         updateDashboardCards();
     } else if (pageId === 'buat-page') {
         document.getElementById('buat-tanggal').value = getToday();
-        resetBuatForm();
+        // Hanya reset jika tidak dalam mode edit
+        if (!window.editMode) {
+            resetBuatForm();
+        }
     } else if (pageId === 'tambah-page') {
         document.getElementById('tambah-tanggal').value = getToday();
         loadReservasiBelumLengkap();
@@ -93,18 +98,24 @@ function showPage(pageId) {
 // ================== FITUR A: BUAT RESERVASI ==================
 let step = 0;
 let dataSementara = {};
+let editId = null; // Untuk mode edit
 
+// Perbaikan: Tombol ganti tanggal sekarang berfungsi
 document.querySelector('#buat-page .btn-ganti-tanggal').addEventListener('click', () => {
-    document.getElementById('form-reservasi').style.display = 'none';
-    document.getElementById('step-container').innerHTML = '';
-    step = 0;
-    dataSementara = { tanggal: document.getElementById('buat-tanggal').value };
-    tampilkanFormAwal();
+    const newDate = document.getElementById('buat-tanggal').value;
+    dataSementara.tanggal = newDate;
+    // Tampilkan notifikasi bahwa tanggal berubah
+    alert(`Tanggal diubah menjadi: ${formatTanggal(newDate)}`);
 });
 
 function resetBuatForm() {
     step = 0;
-    dataSementara = { tanggal: document.getElementById('buat-tanggal').value };
+    editId = null;
+    window.editMode = false;
+    dataSementara = { 
+        tanggal: document.getElementById('buat-tanggal').value,
+        nomorMeja: [] 
+    };
     document.getElementById('form-reservasi').style.display = 'none';
     document.getElementById('step-container').innerHTML = '';
     tampilkanFormAwal();
@@ -115,21 +126,21 @@ function tampilkanFormAwal() {
     container.innerHTML = `
         <div class="form-group">
             <label>Nama Tamu</label>
-            <input type="text" id="nama" required>
+            <input type="text" id="nama" value="${dataSementara.nama || ''}" required>
         </div>
         <div class="form-group">
             <label>Jumlah Tamu</label>
-            <input type="number" id="jumlah" min="1" required>
+            <input type="number" id="jumlah" min="1" value="${dataSementara.jumlahTamu || ''}" required>
         </div>
         <div class="form-group">
             <label>Nomor HP</label>
-            <input type="tel" id="hp" required>
+            <input type="tel" id="hp" value="${dataSementara.noHp || ''}" required>
         </div>
         <div class="form-group">
             <label>Preferensi Area</label>
             <select id="area">
-                <option value="Smoking">Smoking</option>
-                <option value="Non Smoking">Non Smoking</option>
+                <option value="Smoking" ${dataSementara.area === 'Smoking' ? 'selected' : ''}>Smoking</option>
+                <option value="Non Smoking" ${dataSementara.area === 'Non Smoking' ? 'selected' : ''}>Non Smoking</option>
             </select>
         </div>
         <button class="btn" id="lanjut-step1">Lanjut</button>
@@ -169,7 +180,14 @@ function tampilkanPertanyaanMeja() {
 function tampilkanPilihMeja(selectedMeja = null) {
     const tanggal = dataSementara.tanggal;
     const semuaMeja = tables;
-    const mejaTerpakai = reservations.filter(r => r.tanggal === tanggal).flatMap(r => r.nomorMeja || []);
+    
+    // Jika mode edit, exclude reservasi ini sendiri dari pengecekan meja terpakai
+    let mejaTerpakai;
+    if (editId) {
+        mejaTerpakai = reservations.filter(r => r.tanggal === tanggal && r.id !== editId).flatMap(r => r.nomorMeja || []);
+    } else {
+        mejaTerpakai = reservations.filter(r => r.tanggal === tanggal).flatMap(r => r.nomorMeja || []);
+    }
     
     const container = document.getElementById('step-container');
     let html = '<p>Klik meja untuk memilih (bisa lebih dari satu):</p>';
@@ -184,7 +202,8 @@ function tampilkanPilihMeja(selectedMeja = null) {
         html += '<div class="meja-area">🚬 Smoking</div>';
         smoking.forEach(m => {
             const tersedia = !mejaTerpakai.includes(m.nomorMeja);
-            html += `<div class="meja-pilih-item ${tersedia ? 'tersedia' : ''}" 
+            const isSelected = dataSementara.nomorMeja && dataSementara.nomorMeja.includes(m.nomorMeja);
+            html += `<div class="meja-pilih-item ${tersedia ? 'tersedia' : ''} ${isSelected ? 'selected' : ''}" 
                          data-meja="${m.nomorMeja}" 
                          data-tersedia="${tersedia}"
                          style="${!tersedia ? 'opacity:0.3; pointer-events:none;' : ''}">
@@ -197,7 +216,8 @@ function tampilkanPilihMeja(selectedMeja = null) {
         html += '<div class="meja-area">🚭 Non Smoking</div>';
         nonSmoking.forEach(m => {
             const tersedia = !mejaTerpakai.includes(m.nomorMeja);
-            html += `<div class="meja-pilih-item ${tersedia ? 'tersedia' : ''}" 
+            const isSelected = dataSementara.nomorMeja && dataSementara.nomorMeja.includes(m.nomorMeja);
+            html += `<div class="meja-pilih-item ${tersedia ? 'tersedia' : ''} ${isSelected ? 'selected' : ''}" 
                          data-meja="${m.nomorMeja}" 
                          data-tersedia="${tersedia}"
                          style="${!tersedia ? 'opacity:0.3; pointer-events:none;' : ''}">
@@ -210,7 +230,8 @@ function tampilkanPilihMeja(selectedMeja = null) {
         html += '<div class="meja-area">➕ Tambahan</div>';
         tambahan.forEach(m => {
             const tersedia = !mejaTerpakai.includes(m.nomorMeja);
-            html += `<div class="meja-pilih-item ${tersedia ? 'tersedia' : ''}" 
+            const isSelected = dataSementara.nomorMeja && dataSementara.nomorMeja.includes(m.nomorMeja);
+            html += `<div class="meja-pilih-item ${tersedia ? 'tersedia' : ''} ${isSelected ? 'selected' : ''}" 
                          data-meja="${m.nomorMeja}" 
                          data-tersedia="${tersedia}"
                          style="${!tersedia ? 'opacity:0.3; pointer-events:none;' : ''}">
@@ -223,7 +244,7 @@ function tampilkanPilihMeja(selectedMeja = null) {
     html += '<button class="btn" id="simpan-pilih-meja">Simpan Pilihan</button>';
     container.innerHTML = html;
     
-    let selectedMejas = selectedMeja ? selectedMeja : [];
+    let selectedMejas = dataSementara.nomorMeja ? [...dataSementara.nomorMeja] : [];
     
     // Event klik pada meja
     document.querySelectorAll('.meja-pilih-item.tersedia').forEach(item => {
@@ -292,13 +313,13 @@ function tampilkanFormDP() {
         <div class="form-group">
             <label>Jenis Pembayaran</label>
             <select id="jenis">
-                <option value="Cash">Cash</option>
-                <option value="Transfer">Transfer</option>
+                <option value="Cash" ${dataSementara.jenisPembayaran === 'Cash' ? 'selected' : ''}>Cash</option>
+                <option value="Transfer" ${dataSementara.jenisPembayaran === 'Transfer' ? 'selected' : ''}>Transfer</option>
             </select>
         </div>
         <div class="form-group">
             <label>Nominal DP</label>
-            <input type="number" id="nominal" min="0" required>
+            <input type="number" id="nominal" min="0" value="${dataSementara.nominalDP || ''}" required>
         </div>
         <button class="btn" id="simpan-dp">Simpan</button>
     `;
@@ -318,31 +339,64 @@ function tampilkanFormDP() {
 }
 
 function simpanReservasi() {
-    // Hitung status kelengkapan - PERBAIKAN: jika status DP Ya tapi belum input nominal, dianggap belum lengkap
+    // Hitung status kelengkapan
     const lengkap = (dataSementara.nomorMeja && dataSementara.nomorMeja.length > 0) &&
                     (dataSementara.statusDP !== 'Ya' || (dataSementara.nominalDP && dataSementara.nominalDP > 0));
     dataSementara.statusKelengkapan = lengkap ? 'Lengkap' : 'Belum Lengkap';
-    dataSementara.id = Date.now() + '-' + Math.random().toString(36).substr(2, 5);
+    
+    if (!editId) {
+        // Mode tambah baru
+        dataSementara.id = Date.now() + '-' + Math.random().toString(36).substr(2, 5);
+    } else {
+        // Mode edit - pertahankan ID
+        dataSementara.id = editId;
+    }
     
     // Jika ada DP, hitung urutan
     if (dataSementara.statusDP === 'Ya' && dataSementara.nominalDP && dataSementara.nominalDP > 0) {
-        dataSementara.urutanDP = hitungUrutanDP(dataSementara.tanggal, dataSementara.waktuInputDP);
+        // Hanya hitung ulang urutan jika ini DP baru atau berubah
+        if (!dataSementara.waktuInputDP) {
+            dataSementara.waktuInputDP = new Date().toISOString();
+        }
+        dataSementara.urutanDP = hitungUrutanDP(dataSementara.tanggal, dataSementara.waktuInputDP, editId);
     } else {
         dataSementara.urutanDP = null;
     }
     
-    reservations.push(dataSementara);
+    if (editId) {
+        // Update reservasi yang ada
+        const index = reservations.findIndex(r => r.id === editId);
+        if (index !== -1) {
+            reservations[index] = dataSementara;
+        }
+    } else {
+        // Tambah baru
+        reservations.push(dataSementara);
+    }
+    
     saveReservations();
     alert('Reservasi Berhasil Disimpan');
+    
+    // Reset mode edit
+    window.editMode = false;
+    editId = null;
+    
     // Arahkan ke List Reservasi tanggal yang sama
     document.getElementById('list-tanggal').value = dataSementara.tanggal;
     showPage('list-page');
     loadListReservasi();
 }
 
-function hitungUrutanDP(tanggal, waktu) {
-    const dpReservations = reservations.filter(r => r.tanggal === tanggal && r.statusDP === 'Ya' && r.nominalDP && r.nominalDP > 0);
+function hitungUrutanDP(tanggal, waktu, excludeId = null) {
+    let dpReservations = reservations.filter(r => 
+        r.tanggal === tanggal && 
+        r.statusDP === 'Ya' && 
+        r.nominalDP && 
+        r.nominalDP > 0 &&
+        r.id !== excludeId // Exclude diri sendiri saat edit
+    );
     dpReservations.sort((a, b) => new Date(a.waktuInputDP) - new Date(b.waktuInputDP));
+    
     // Cari posisi untuk waktu baru
     let pos = 1;
     for (let r of dpReservations) {
@@ -351,7 +405,7 @@ function hitungUrutanDP(tanggal, waktu) {
     return pos;
 }
 
-// ================== FITUR B: TAMBAH MEJA / DP ==================
+// ================== FITUR B: TAMBAH MEJA / DP (PERBAIKAN) ==================
 document.querySelector('#tambah-page .btn-load-tanggal').addEventListener('click', loadReservasiBelumLengkap);
 
 function loadReservasiBelumLengkap() {
@@ -366,14 +420,21 @@ function loadReservasiBelumLengkap() {
     }
     let html = '<h3>Pilih reservasi untuk dilengkapi:</h3>';
     belumLengkap.forEach(r => {
+        const kekurangan = [];
+        if (!r.nomorMeja || r.nomorMeja.length === 0) kekurangan.push('Meja');
+        if (r.statusDP === 'Ya' && (!r.nominalDP || r.nominalDP <= 0)) kekurangan.push('DP');
+        
         html += `<div class="card-item" data-id="${r.id}">
             <div><strong>${r.nama}</strong> - ${r.jumlahTamu} org</div>
             <div>HP: ${r.noHp} | Area: ${r.area}</div>
-            <div>Meja: ${r.nomorMeja ? r.nomorMeja.join(', ') : '-'} | DP: ${r.statusDP === 'Ya' ? (r.nominalDP ? 'Rp '+r.nominalDP : 'Belum input') : 'Tidak'}</div>
-            <button class="btn-pilih-lengkapi" data-id="${r.id}">Pilih</button>
+            <div>Meja: ${r.nomorMeja ? r.nomorMeja.join(', ') : '-'}</div>
+            <div>DP: ${r.statusDP === 'Ya' ? (r.nominalDP ? 'Rp '+r.nominalDP : 'Belum input') : 'Tidak'}</div>
+            <div style="color: #dc3545; margin: 5px 0;">Kekurangan: ${kekurangan.join(', ')}</div>
+            <button class="btn-pilih-lengkapi" data-id="${r.id}">Pilih untuk Dilengkapi</button>
         </div>`;
     });
     container.innerHTML = html;
+    
     document.querySelectorAll('.btn-pilih-lengkapi').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const id = e.target.dataset.id;
@@ -386,10 +447,16 @@ function tampilkanFormLengkapi(id) {
     const reservasi = reservations.find(r => r.id === id);
     const container = document.getElementById('form-lengkapi');
     container.style.display = 'block';
-    let html = '<h3>Lengkapi Data</h3>';
     
-    if (!reservasi.nomorMeja || reservasi.nomorMeja.length === 0) {
-        html += '<p>Pilih Meja:</p><div class="meja-pilih-grid" id="grid-lengkapi-meja">';
+    let html = '<h3>Lengkapi Data Reservasi</h3>';
+    html += `<p><strong>Nama:</strong> ${reservasi.nama}</p>`;
+    
+    // Cek apa saja yang perlu dilengkapi
+    const perluMeja = !reservasi.nomorMeja || reservasi.nomorMeja.length === 0;
+    const perluDP = reservasi.statusDP === 'Ya' && (!reservasi.nominalDP || reservasi.nominalDP <= 0);
+    
+    if (perluMeja) {
+        html += '<h4>Pilih Meja:</h4><div class="meja-pilih-grid" id="grid-lengkapi-meja">';
         const semuaMeja = tables;
         const mejaTerpakai = reservations.filter(r => r.tanggal === reservasi.tanggal && r.id !== id).flatMap(r => r.nomorMeja || []);
         
@@ -439,21 +506,33 @@ function tampilkanFormLengkapi(id) {
         html += '</div>';
     }
     
-    if (reservasi.statusDP === 'Ya' && (!reservasi.nominalDP || reservasi.nominalDP <= 0)) {
+    if (perluDP) {
         html += `
-            <div class="form-group"><label>Jenis Pembayaran</label>
-                <select id="lengkapi-jenis"><option value="Cash">Cash</option><option value="Transfer">Transfer</option></select>
+            <div class="form-group">
+                <label>Jenis Pembayaran</label>
+                <select id="lengkapi-jenis">
+                    <option value="Cash">Cash</option>
+                    <option value="Transfer">Transfer</option>
+                </select>
             </div>
-            <div class="form-group"><label>Nominal DP</label><input type="number" id="lengkapi-nominal" min="0"></div>
+            <div class="form-group">
+                <label>Nominal DP</label>
+                <input type="number" id="lengkapi-nominal" min="0" placeholder="Masukkan nominal DP">
+            </div>
         `;
     }
     
-    html += '<button class="btn" id="simpan-lengkapi">Simpan</button>';
+    if (!perluMeja && !perluDP) {
+        html += '<p>Tidak ada data yang perlu dilengkapi</p>';
+    } else {
+        html += '<button class="btn" id="simpan-lengkapi">Simpan Perubahan</button>';
+    }
+    
     container.innerHTML = html;
     
-    let selectedMejas = [];
-    
-    if (!reservasi.nomorMeja || reservasi.nomorMeja.length === 0) {
+    if (perluMeja) {
+        let selectedMejas = [];
+        
         document.querySelectorAll('#grid-lengkapi-meja .meja-pilih-item.tersedia').forEach(item => {
             item.addEventListener('click', () => {
                 const meja = item.dataset.meja;
@@ -466,40 +545,59 @@ function tampilkanFormLengkapi(id) {
                 }
             });
         });
-    }
-    
-    document.getElementById('simpan-lengkapi').addEventListener('click', () => {
-        if (!reservasi.nomorMeja || reservasi.nomorMeja.length === 0) {
+        
+        document.getElementById('simpan-lengkapi').addEventListener('click', () => {
             if (selectedMejas.length === 0) {
                 alert('Pilih minimal satu meja');
                 return;
             }
             reservasi.nomorMeja = selectedMejas;
-        }
-        
-        if (reservasi.statusDP === 'Ya' && (!reservasi.nominalDP || reservasi.nominalDP <= 0)) {
+            
+            if (perluDP) {
+                const jenis = document.getElementById('lengkapi-jenis').value;
+                const nominal = document.getElementById('lengkapi-nominal').value;
+                if (!nominal || nominal <= 0) {
+                    alert('Isi nominal DP');
+                    return;
+                }
+                reservasi.jenisPembayaran = jenis;
+                reservasi.nominalDP = nominal;
+                reservasi.waktuInputDP = new Date().toISOString();
+                reservasi.urutanDP = hitungUrutanDP(reservasi.tanggal, reservasi.waktuInputDP, reservasi.id);
+            }
+            
+            // Update kelengkapan
+            reservasi.statusKelengkapan = (reservasi.nomorMeja && reservasi.nomorMeja.length > 0) &&
+                (reservasi.statusDP !== 'Ya' || (reservasi.nominalDP && reservasi.nominalDP > 0)) ? 'Lengkap' : 'Belum Lengkap';
+            
+            saveReservations();
+            alert('Data berhasil diperbarui');
+            container.style.display = 'none';
+            loadReservasiBelumLengkap();
+        });
+    } else if (perluDP) {
+        document.getElementById('simpan-lengkapi').addEventListener('click', () => {
             const jenis = document.getElementById('lengkapi-jenis').value;
             const nominal = document.getElementById('lengkapi-nominal').value;
-            if (!nominal || nominal <= 0) { 
-                alert('Isi nominal'); 
-                return; 
+            if (!nominal || nominal <= 0) {
+                alert('Isi nominal DP');
+                return;
             }
             reservasi.jenisPembayaran = jenis;
             reservasi.nominalDP = nominal;
             reservasi.waktuInputDP = new Date().toISOString();
-            // Update urutan DP
-            reservasi.urutanDP = hitungUrutanDP(reservasi.tanggal, reservasi.waktuInputDP);
-        }
-        
-        // Update kelengkapan - PERBAIKAN
-        reservasi.statusKelengkapan = (reservasi.nomorMeja && reservasi.nomorMeja.length > 0) &&
-            (reservasi.statusDP !== 'Ya' || (reservasi.nominalDP && reservasi.nominalDP > 0)) ? 'Lengkap' : 'Belum Lengkap';
-        
-        saveReservations();
-        alert('Data diperbarui');
-        container.style.display = 'none';
-        loadReservasiBelumLengkap(); // refresh daftar
-    });
+            reservasi.urutanDP = hitungUrutanDP(reservasi.tanggal, reservasi.waktuInputDP, reservasi.id);
+            
+            // Update kelengkapan
+            reservasi.statusKelengkapan = (reservasi.nomorMeja && reservasi.nomorMeja.length > 0) &&
+                (reservasi.statusDP !== 'Ya' || (reservasi.nominalDP && reservasi.nominalDP > 0)) ? 'Lengkap' : 'Belum Lengkap';
+            
+            saveReservations();
+            alert('Data berhasil diperbarui');
+            container.style.display = 'none';
+            loadReservasiBelumLengkap();
+        });
+    }
 }
 
 // ================== FITUR C: LIST RESERVASI ==================
@@ -603,24 +701,27 @@ function formatKolom(r, k) {
     return r[k] || '-';
 }
 
+// PERBAIKAN: Fungsi editReservasi sekarang mengarahkan ke form
 function editReservasi(id) {
-    const r = reservations.find(r => r.id === id);
-    // Sederhana: prompt untuk edit beberapa field (nama, jumlah, no meja, nominal dp)
-    const newNama = prompt('Nama Tamu:', r.nama);
-    if (newNama) r.nama = newNama;
-    const newJumlah = prompt('Jumlah Tamu:', r.jumlahTamu);
-    if (newJumlah) r.jumlahTamu = newJumlah;
-    const newMeja = prompt('Nomor Meja (pisahkan koma):', r.nomorMeja ? r.nomorMeja.join(',') : '');
-    if (newMeja !== null) r.nomorMeja = newMeja.split(',').map(s => s.trim()).filter(s => s);
-    if (r.statusDP === 'Ya') {
-        const newNominal = prompt('Nominal DP:', r.nominalDP);
-        if (newNominal) r.nominalDP = newNominal;
-    }
-    // Update kelengkapan
-    r.statusKelengkapan = (r.nomorMeja && r.nomorMeja.length > 0) &&
-        (r.statusDP !== 'Ya' || (r.nominalDP && r.nominalDP > 0)) ? 'Lengkap' : 'Belum Lengkap';
-    saveReservations();
-    loadListReservasi();
+    const reservasi = reservations.find(r => r.id === id);
+    if (!reservasi) return;
+    
+    // Set mode edit
+    window.editMode = true;
+    editId = id;
+    
+    // Salin data reservasi ke dataSementara
+    dataSementara = { ...reservasi };
+    
+    // Pastikan tanggal di date picker sesuai
+    document.getElementById('buat-tanggal').value = dataSementara.tanggal;
+    
+    // Arahkan ke halaman buat reservasi
+    showPage('buat-page');
+    
+    // Mulai dari awal form dengan data terisi
+    step = 0;
+    tampilkanFormAwal();
 }
 
 // Atur kolom
@@ -677,7 +778,7 @@ document.getElementById('tutup-modal').addEventListener('click', () => {
     document.getElementById('modal-kolom').style.display = 'none';
 });
 
-// ================== FITUR D: CEK MEJA KOSONG (UPDATE) ==================
+// ================== FITUR D: CEK MEJA KOSONG ==================
 document.querySelector('#cek-page .btn-load-tanggal').addEventListener('click', loadMejaKosong);
 
 function loadMejaKosong() {
@@ -747,27 +848,40 @@ function loadMejaKosong() {
             const tanggal = document.getElementById('cek-tanggal').value;
             
             if (!terisi) {
-                // Meja kosong - tanya buat reservasi baru
+                // PERBAIKAN: Meja kosong - tanya buat reservasi baru, mulai dari awal
                 if (confirm(`Buat reservasi baru untuk meja ${meja}?`)) {
-                    // Arahkan ke halaman buat reservasi dengan meja terpilih
+                    // Reset mode edit
+                    window.editMode = false;
+                    editId = null;
+                    
+                    // Arahkan ke halaman buat reservasi
                     showPage('buat-page');
                     document.getElementById('buat-tanggal').value = tanggal;
+                    
+                    // Reset form dan set meja terpilih setelah form awal
                     resetBuatForm();
                     
-                    // Langsung ke step pilih meja dengan meja terpilih
+                    // Set dataSementara dengan meja terpilih dan tanggal yang benar
                     setTimeout(() => {
-                        step = 1;
                         dataSementara.tanggal = tanggal;
-                        tampilkanPertanyaanMeja();
+                        dataSementara.nomorMeja = [meja];
                         
-                        // Override tombol "Ya" untuk langsung ke pilih meja dengan meja terpilih
-                        setTimeout(() => {
-                            document.getElementById('meja-ya').click();
-                            setTimeout(() => {
-                                // Pilih meja yang diklik
-                                tampilkanPilihMeja([meja]);
-                            }, 100);
-                        }, 100);
+                        // Isi form awal dengan data yang sudah ada (jika ada)
+                        if (document.getElementById('nama')) {
+                            document.getElementById('nama').value = dataSementara.nama || '';
+                        }
+                        if (document.getElementById('jumlah')) {
+                            document.getElementById('jumlah').value = dataSementara.jumlahTamu || '';
+                        }
+                        if (document.getElementById('hp')) {
+                            document.getElementById('hp').value = dataSementara.noHp || '';
+                        }
+                        if (document.getElementById('area')) {
+                            document.getElementById('area').value = dataSementara.area || 'Non Smoking';
+                        }
+                        
+                        // Tampilkan pesan bahwa meja sudah dipilih
+                        alert(`Meja ${meja} akan dipesan. Silakan lengkapi data reservasi.`);
                     }, 100);
                 }
             } else {
@@ -859,6 +973,12 @@ window.hapusMeja = (nomor) => {
         renderDaftarMeja();
     }
 };
+
+// Helper format tanggal
+function formatTanggal(tanggal) {
+    const [tahun, bulan, hari] = tanggal.split('-');
+    return `${hari}-${bulan}-${tahun}`;
+}
 
 // Inisialisasi
 updateDashboardCards();
