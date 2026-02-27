@@ -1,31 +1,127 @@
-// Data Awal
-let reservations = JSON.parse(localStorage.getItem('reservations')) || [];
-let tables = JSON.parse(localStorage.getItem('tables')) || [];
-let kolomSetting = JSON.parse(localStorage.getItem('kolomSetting')) || {
+// ================== KONFIGURASI FIREBASE ==================
+// Ganti dengan konfigurasi Firebase Anda
+const firebaseConfig = {
+
+  apiKey: "AIzaSyD0r4H0CVS45gbnO9HILt8VStX77KPA0bQ",
+
+  authDomain: "reservasi-574aa.firebaseapp.com",
+
+  projectId: "reservasi-574aa",
+
+  storageBucket: "reservasi-574aa.firebasestorage.app",
+
+  messagingSenderId: "357990257039",
+
+  appId: "1:357990257039:web:3398c968da7b24490cbbfa"
+
+};
+
+
+// Inisialisasi Firebase
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+// ================== DATA GLOBAL ==================
+let reservations = [];
+let tables = [];
+let kolomSetting = {
     urutan: ['nama', 'jumlahTamu', 'noHp', 'area', 'nomorMeja', 'statusOrder', 'statusDP', 'nominalDP', 'urutanDP', 'statusKelengkapan'],
     ditampilkan: ['nama', 'jumlahTamu', 'noHp', 'area', 'nomorMeja', 'statusOrder', 'statusDP', 'nominalDP', 'urutanDP', 'statusKelengkapan']
 };
 
-// Inisialisasi meja default jika kosong
-if (tables.length === 0) {
-    for (let i = 1; i <= 70; i++) {
-        let area = 'Non Smoking';
-        if (i > 30 && i <= 50) area = 'Smoking';
-        else if (i > 50) area = 'Tambahan';
-        tables.push({ nomorMeja: i.toString(), area });
+// ================== LOAD DATA DARI FIREBASE ==================
+async function loadData() {
+    try {
+        // Load reservasi
+        const reservationsSnapshot = await db.collection('reservations').get();
+        reservations = [];
+        reservationsSnapshot.forEach(doc => {
+            reservations.push({ id: doc.id, ...doc.data() });
+        });
+        
+        // Load meja
+        const tablesSnapshot = await db.collection('tables').get();
+        if (tablesSnapshot.empty) {
+            // Inisialisasi meja default jika kosong
+            tables = [];
+            for (let i = 1; i <= 70; i++) {
+                let area = 'Non Smoking';
+                if (i > 30 && i <= 50) area = 'Smoking';
+                else if (i > 50) area = 'Tambahan';
+                tables.push({ nomorMeja: i.toString(), area });
+            }
+            await saveTables();
+        } else {
+            tables = [];
+            tablesSnapshot.forEach(doc => {
+                tables.push({ id: doc.id, ...doc.data() });
+            });
+        }
+        
+        // Load kolom setting dari localStorage (tetap lokal karena preference user)
+        const savedKolom = localStorage.getItem('kolomSetting');
+        if (savedKolom) {
+            kolomSetting = JSON.parse(savedKolom);
+        }
+        
+        updateDashboardCards();
+        console.log('Data loaded from Firebase');
+    } catch (error) {
+        console.error('Error loading data: ', error);
+        alert('Gagal memuat data. Periksa koneksi internet Anda.');
     }
-    saveTables();
 }
 
-// Helper Simpan
-function saveReservations() {
-    localStorage.setItem('reservations', JSON.stringify(reservations));
-    updateDashboardCards();
-}
-function saveTables() {
-    localStorage.setItem('tables', JSON.stringify(tables));
+// ================== SIMPAN KE FIREBASE ==================
+async function saveReservations() {
+    try {
+        const batch = db.batch();
+        
+        // Hapus semua data lama (pendekatan sederhana - bisa dioptimalkan)
+        const snapshot = await db.collection('reservations').get();
+        snapshot.forEach(doc => {
+            batch.delete(doc.ref);
+        });
+        
+        // Tambah data baru
+        reservations.forEach(res => {
+            const { id, ...data } = res;
+            const docRef = db.collection('reservations').doc(id);
+            batch.set(docRef, data);
+        });
+        
+        await batch.commit();
+        console.log('Reservations saved to Firebase');
+        updateDashboardCards();
+    } catch (error) {
+        console.error('Error saving reservations: ', error);
+        alert('Gagal menyimpan data. Periksa koneksi internet Anda.');
+    }
 }
 
+async function saveTables() {
+    try {
+        const batch = db.batch();
+        
+        const snapshot = await db.collection('tables').get();
+        snapshot.forEach(doc => {
+            batch.delete(doc.ref);
+        });
+        
+        tables.forEach((meja, index) => {
+            const docRef = db.collection('tables').doc(`table_${index}`);
+            batch.set(docRef, meja);
+        });
+        
+        await batch.commit();
+        console.log('Tables saved to Firebase');
+    } catch (error) {
+        console.error('Error saving tables: ', error);
+        alert('Gagal menyimpan data meja. Periksa koneksi internet Anda.');
+    }
+}
+
+// ================== HELPER FUNCTIONS ==================
 // Format tanggal YYYY-MM-DD
 function getToday() {
     const d = new Date();
@@ -84,21 +180,13 @@ function updateDashboardCards() {
     document.getElementById('dashboard-belum-lengkap').innerText = belumLengkap;
 }
 
-// Navigasi
+// ================== NAVIGASI ==================
 document.querySelectorAll('.menu-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
         const action = e.target.dataset.action;
         if (action === 'buat') {
             showPage('buat-page');
             resetFormReservasi();
-        } else if (action === 'tambah-meja') {
-            showPage('tambah-meja-page');
-            document.getElementById('tambah-meja-tanggal').value = getToday();
-            loadReservasiButuhMeja();
-        } else if (action === 'tambah-dp') {
-            showPage('tambah-dp-page');
-            document.getElementById('tambah-dp-tanggal').value = getToday();
-            loadReservasiButuhDP();
         } else if (action === 'list') {
             showPage('list-page');
             document.getElementById('list-tanggal').value = getToday();
@@ -123,7 +211,7 @@ function showPage(pageId) {
     document.getElementById(pageId).classList.add('active');
 }
 
-// ================== FITUR A: BUAT RESERVASI (1 HALAMAN) ==================
+// ================== FITUR A: BUAT RESERVASI ==================
 let editId = null;
 
 // Auto-capitalize nama
@@ -182,7 +270,6 @@ function loadMejaGrid(selectedMejas = []) {
     const tanggal = document.getElementById('buat-tanggal').value;
     const semuaMeja = tables;
     
-    // Jika mode edit, exclude reservasi ini sendiri
     let mejaTerpakai;
     if (editId) {
         mejaTerpakai = reservations.filter(r => r.tanggal === tanggal && r.id !== editId).flatMap(r => r.nomorMeja || []);
@@ -193,7 +280,7 @@ function loadMejaGrid(selectedMejas = []) {
     const container = document.getElementById('meja-grid-container');
     let html = '';
     
-    // Kelompokkan berdasarkan area - URUTAN: Non Smoking dulu, lalu Smoking, lalu Tambahan
+    // URUTAN: Non Smoking dulu, lalu Smoking, lalu Tambahan
     const nonSmoking = semuaMeja.filter(m => m.area === 'Non Smoking');
     const smoking = semuaMeja.filter(m => m.area === 'Smoking');
     const tambahan = semuaMeja.filter(m => m.area === 'Tambahan');
@@ -242,7 +329,6 @@ function loadMejaGrid(selectedMejas = []) {
     
     container.innerHTML = html;
     
-    // Event klik pada meja
     setTimeout(() => {
         let selected = [...selectedMejas];
         document.querySelectorAll('.meja-pilih-item.tersedia').forEach(item => {
@@ -261,7 +347,7 @@ function loadMejaGrid(selectedMejas = []) {
 }
 
 // Tombol Simpan Reservasi
-document.getElementById('simpan-reservasi').addEventListener('click', function() {
+document.getElementById('simpan-reservasi').addEventListener('click', async function() {
     // Validasi field wajib
     const tanggal = document.getElementById('buat-tanggal').value;
     const nama = document.getElementById('nama').value;
@@ -273,7 +359,6 @@ document.getElementById('simpan-reservasi').addEventListener('click', function()
         return;
     }
     
-    // Ambil data meja yang dipilih
     let nomorMeja = [];
     if (document.getElementById('punya-meja').checked) {
         const selectedMejas = [];
@@ -287,7 +372,6 @@ document.getElementById('simpan-reservasi').addEventListener('click', function()
         nomorMeja = selectedMejas;
     }
     
-    // Ambil data DP
     let statusDP = 'Tidak';
     let jenisPembayaran = null;
     let nominalDP = null;
@@ -305,7 +389,6 @@ document.getElementById('simpan-reservasi').addEventListener('click', function()
         waktuInputDP = new Date().toISOString();
     }
     
-    // Buat objek reservasi
     const reservasi = {
         id: editId || (Date.now() + '-' + Math.random().toString(36).substr(2, 5)),
         tanggal: tanggal,
@@ -321,15 +404,12 @@ document.getElementById('simpan-reservasi').addEventListener('click', function()
         waktuInputDP: waktuInputDP
     };
     
-    // Hitung urutan DP jika ada
     if (statusDP === 'Ya' && nominalDP > 0) {
         reservasi.urutanDP = hitungUrutanDP(tanggal, waktuInputDP, editId);
     }
     
-    // Set status kelengkapan
     reservasi.statusKelengkapan = getStatusKelengkapan(reservasi);
     
-    // Simpan
     if (editId) {
         const index = reservations.findIndex(r => r.id === editId);
         if (index !== -1) {
@@ -339,16 +419,14 @@ document.getElementById('simpan-reservasi').addEventListener('click', function()
         reservations.push(reservasi);
     }
     
-    saveReservations();
+    await saveReservations();
     alert('Reservasi Berhasil Disimpan');
     
-    // Redirect ke list
     document.getElementById('list-tanggal').value = tanggal;
     showPage('list-page');
     loadListReservasi();
 });
 
-// Fungsi hitung urutan DP
 function hitungUrutanDP(tanggal, waktu, excludeId = null) {
     let dpReservations = reservations.filter(r => 
         r.tanggal === tanggal && 
@@ -366,233 +444,6 @@ function hitungUrutanDP(tanggal, waktu, excludeId = null) {
     return pos;
 }
 
-// ================== FITUR B1: TAMBAH MEJA ==================
-document.querySelector('#tambah-meja-page .btn-load-tanggal').addEventListener('click', loadReservasiButuhMeja);
-
-function loadReservasiButuhMeja() {
-    const tanggal = document.getElementById('tambah-meja-tanggal').value;
-    const butuhMeja = reservations.filter(r => 
-        r.tanggal === tanggal && 
-        (!r.nomorMeja || r.nomorMeja.length === 0)
-    );
-    
-    const container = document.getElementById('daftar-reservasi-butuh-meja');
-    if (butuhMeja.length === 0) {
-        container.innerHTML = '<p>Tidak ada reservasi yang butuh meja</p>';
-        return;
-    }
-    
-    let html = '<h3>Pilih reservasi untuk ditambahkan meja:</h3>';
-    butuhMeja.forEach(r => {
-        const status = getStatusKelengkapan(r);
-        const statusClass = status.toLowerCase().replace(/ /g, '-').replace(/&/g, '');
-        html += `<div class="card-item" data-id="${r.id}">
-            <div><strong>${r.nama}</strong> - ${r.jumlahTamu} org</div>
-            <div>HP: ${r.noHp} | Area: ${r.area}</div>
-            <div>Status: <span class="status-badge status-${statusClass}">${status}</span></div>
-            <button class="btn-pilih-tambah-meja" data-id="${r.id}">Pilih untuk Tambah Meja</button>
-        </div>`;
-    });
-    container.innerHTML = html;
-    
-    document.querySelectorAll('.btn-pilih-tambah-meja').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const id = e.target.dataset.id;
-            tampilkanFormTambahMeja(id);
-        });
-    });
-}
-
-function tampilkanFormTambahMeja(id) {
-    const reservasi = reservations.find(r => r.id === id);
-    const container = document.getElementById('form-tambah-meja');
-    container.style.display = 'block';
-    
-    const tanggal = reservasi.tanggal;
-    const semuaMeja = tables;
-    const mejaTerpakai = reservations.filter(r => r.tanggal === tanggal && r.id !== id).flatMap(r => r.nomorMeja || []);
-    
-    let html = '<h3>Tambah Meja untuk ' + reservasi.nama + '</h3>';
-    html += '<div class="meja-pilih-grid" id="grid-tambah-meja">';
-    
-    // URUTAN: Non Smoking dulu, lalu Smoking, lalu Tambahan
-    const nonSmoking = semuaMeja.filter(m => m.area === 'Non Smoking');
-    const smoking = semuaMeja.filter(m => m.area === 'Smoking');
-    const tambahan = semuaMeja.filter(m => m.area === 'Tambahan');
-    
-    if (nonSmoking.length) {
-        html += '<div class="meja-area">🚭 Non Smoking</div>';
-        nonSmoking.forEach(m => {
-            const tersedia = !mejaTerpakai.includes(m.nomorMeja);
-            html += `<div class="meja-pilih-item ${tersedia ? 'tersedia' : ''}" 
-                         data-meja="${m.nomorMeja}" 
-                         data-tersedia="${tersedia}"
-                         style="${!tersedia ? 'opacity:0.3; pointer-events:none;' : ''}">
-                         ${m.nomorMeja}
-                    </div>`;
-        });
-    }
-    
-    if (smoking.length) {
-        html += '<div class="meja-area">🚬 Smoking</div>';
-        smoking.forEach(m => {
-            const tersedia = !mejaTerpakai.includes(m.nomorMeja);
-            html += `<div class="meja-pilih-item ${tersedia ? 'tersedia' : ''}" 
-                         data-meja="${m.nomorMeja}" 
-                         data-tersedia="${tersedia}"
-                         style="${!tersedia ? 'opacity:0.3; pointer-events:none;' : ''}">
-                         ${m.nomorMeja}
-                    </div>`;
-        });
-    }
-    
-    if (tambahan.length) {
-        html += '<div class="meja-area">➕ Tambahan</div>';
-        tambahan.forEach(m => {
-            const tersedia = !mejaTerpakai.includes(m.nomorMeja);
-            html += `<div class="meja-pilih-item ${tersedia ? 'tersedia' : ''}" 
-                         data-meja="${m.nomorMeja}" 
-                         data-tersedia="${tersedia}"
-                         style="${!tersedia ? 'opacity:0.3; pointer-events:none;' : ''}">
-                         ${m.nomorMeja}
-                    </div>`;
-        });
-    }
-    
-    html += '</div>';
-    html += '<button class="btn" id="simpan-tambah-meja">Simpan Meja</button>';
-    container.innerHTML = html;
-    
-    let selectedMejas = [];
-    setTimeout(() => {
-        document.querySelectorAll('#grid-tambah-meja .meja-pilih-item.tersedia').forEach(item => {
-            item.addEventListener('click', function() {
-                const meja = this.dataset.meja;
-                if (selectedMejas.includes(meja)) {
-                    selectedMejas = selectedMejas.filter(m => m !== meja);
-                    this.classList.remove('selected');
-                } else {
-                    selectedMejas.push(meja);
-                    this.classList.add('selected');
-                }
-            });
-        });
-    }, 100);
-    
-    document.getElementById('simpan-tambah-meja').addEventListener('click', function() {
-        if (selectedMejas.length === 0) {
-            alert('Pilih minimal satu meja');
-            return;
-        }
-        
-        reservasi.nomorMeja = selectedMejas;
-        reservasi.statusKelengkapan = getStatusKelengkapan(reservasi);
-        saveReservations();
-        
-        alert('Meja berhasil ditambahkan');
-        container.style.display = 'none';
-        loadReservasiButuhMeja();
-    });
-}
-
-// ================== FITUR B2: TAMBAH DP (PERBAIKAN) ==================
-document.querySelector('#tambah-dp-page .btn-load-tanggal').addEventListener('click', loadReservasiButuhDP);
-
-function loadReservasiButuhDP() {
-    const tanggal = document.getElementById('tambah-dp-tanggal').value;
-    
-    // PERBAIKAN: Filter reservasi yang butuh DP (status DP Ya tapi belum ada nominal)
-    // Ini mencakup status 'Belum ada DP' dan 'Belum ada Meja & DP'
-    const butuhDP = reservations.filter(r => 
-        r.tanggal === tanggal && 
-        r.statusDP === 'Ya' && 
-        (!r.nominalDP || r.nominalDP <= 0)
-    );
-    
-    console.log('Reservasi butuh DP:', butuhDP); // Untuk debugging
-    
-    const container = document.getElementById('daftar-reservasi-butuh-dp');
-    if (butuhDP.length === 0) {
-        container.innerHTML = '<p>Tidak ada reservasi yang butuh DP</p>';
-        return;
-    }
-    
-    let html = '<h3>Pilih reservasi untuk ditambahkan DP:</h3>';
-    butuhDP.forEach(r => {
-        const status = getStatusKelengkapan(r);
-        const statusClass = status.toLowerCase().replace(/ /g, '-').replace(/&/g, '');
-        html += `<div class="card-item" data-id="${r.id}">
-            <div><strong>${r.nama}</strong> - ${r.jumlahTamu} org</div>
-            <div>HP: ${r.noHp} | Area: ${r.area}</div>
-            <div>Meja: ${r.nomorMeja ? r.nomorMeja.join(', ') : '-'}</div>
-            <div>Status: <span class="status-badge status-${statusClass}">${status}</span></div>
-            <button class="btn-pilih-tambah-dp" data-id="${r.id}">Pilih untuk Tambah DP</button>
-        </div>`;
-    });
-    container.innerHTML = html;
-    
-    document.querySelectorAll('.btn-pilih-tambah-dp').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const id = e.target.dataset.id;
-            tampilkanFormTambahDP(id);
-        });
-    });
-}
-
-function tampilkanFormTambahDP(id) {
-    const reservasi = reservations.find(r => r.id === id);
-    const container = document.getElementById('form-tambah-dp');
-    container.style.display = 'block';
-    
-    let html = '<h3>Tambah DP untuk ' + reservasi.nama + '</h3>';
-    html += `
-        <div class="form-group">
-            <label>Jenis Pembayaran</label>
-            <select id="tambah-dp-jenis">
-                <option value="Transfer">Transfer</option>
-                <option value="Cash">Cash</option>
-            </select>
-        </div>
-        <div class="form-group">
-            <label>Nominal DP</label>
-            <input type="text" id="tambah-dp-nominal" min="0" placeholder="Contoh: 10,000" required>
-        </div>
-        <button class="btn" id="simpan-tambah-dp">Simpan DP</button>
-    `;
-    container.innerHTML = html;
-    
-    // Format Rupiah untuk input nominal DP di form tambah
-    document.getElementById('tambah-dp-nominal').addEventListener('input', function(e) {
-        const value = this.value.replace(/[^0-9]/g, '');
-        if (value) {
-            this.value = formatRupiah(value);
-        } else {
-            this.value = '';
-        }
-    });
-    
-    document.getElementById('simpan-tambah-dp').addEventListener('click', function() {
-        const jenis = document.getElementById('tambah-dp-jenis').value;
-        const nominal = parseRupiah(document.getElementById('tambah-dp-nominal').value);
-        
-        if (!nominal || nominal <= 0) {
-            alert('Isi nominal DP');
-            return;
-        }
-        
-        reservasi.jenisPembayaran = jenis;
-        reservasi.nominalDP = nominal;
-        reservasi.waktuInputDP = new Date().toISOString();
-        reservasi.urutanDP = hitungUrutanDP(reservasi.tanggal, reservasi.waktuInputDP, reservasi.id);
-        reservasi.statusKelengkapan = getStatusKelengkapan(reservasi);
-        
-        saveReservations();
-        alert('DP berhasil ditambahkan');
-        container.style.display = 'none';
-        loadReservasiButuhDP();
-    });
-}
-
 // ================== FITUR C: LIST RESERVASI ==================
 let currentView = 'table';
 
@@ -603,8 +454,6 @@ document.getElementById('toggle-view').addEventListener('click', () => {
 });
 
 document.getElementById('sort-by').addEventListener('change', loadListReservasi);
-
-// Tombol Muat di List Reservasi
 document.querySelector('#list-page .btn-load-tanggal').addEventListener('click', loadListReservasi);
 
 function loadListReservasi() {
@@ -640,8 +489,8 @@ function loadListReservasi() {
                 html += `<td>${formatKolom(r, k)}</td>`;
             });
             html += `<td>
-                <button class="edit-btn" data-id="${r.id}">✏️</button>
-                <button class="hapus-btn" data-id="${r.id}">🗑️</button>
+                <button class="action-btn edit-btn" data-id="${r.id}">Edit</button>
+                <button class="action-btn hapus-btn" data-id="${r.id}">Hapus</button>
             </td></tr>`;
         });
         html += '</tbody></table>';
@@ -656,8 +505,8 @@ function loadListReservasi() {
                 <div>DP: ${r.statusDP === 'Ya' && r.nominalDP ? 'Rp ' + formatRupiah(r.nominalDP) : '-'}</div>
                 <div>Status: <span class="status-badge status-${statusClass}">${r.statusKelengkapan}</span></div>
                 <div>
-                    <button class="edit-btn" data-id="${r.id}">✏️ Edit</button>
-                    <button class="hapus-btn" data-id="${r.id}">🗑️ Hapus</button>
+                    <button class="action-btn edit-btn" data-id="${r.id}">Edit</button>
+                    <button class="action-btn hapus-btn" data-id="${r.id}">Hapus</button>
                 </div>
             </div>`;
         });
@@ -672,11 +521,11 @@ function loadListReservasi() {
         });
     });
     document.querySelectorAll('.hapus-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
+        btn.addEventListener('click', async (e) => {
             if (confirm('Hapus reservasi ini?')) {
                 const id = e.target.dataset.id;
                 reservations = reservations.filter(r => r.id !== id);
-                saveReservations();
+                await saveReservations();
                 loadListReservasi();
             }
         });
@@ -709,7 +558,6 @@ function editReservasi(id) {
     
     editId = id;
     
-    // Isi form
     document.getElementById('buat-tanggal').value = reservasi.tanggal;
     document.getElementById('nama').value = reservasi.nama;
     document.getElementById('jumlah').value = reservasi.jumlahTamu;
@@ -812,7 +660,6 @@ function loadMejaKosong() {
     const container = document.getElementById('meja-kosong-container');
     let html = '<div class="meja-grid">';
     
-    // URUTAN: Non Smoking dulu, lalu Smoking, lalu Tambahan
     const nonSmoking = mejaDenganStatus.filter(m => m.area === 'Non Smoking');
     const smoking = mejaDenganStatus.filter(m => m.area === 'Smoking');
     const tambahan = mejaDenganStatus.filter(m => m.area === 'Tambahan');
@@ -820,7 +667,7 @@ function loadMejaKosong() {
     if (nonSmoking.length) {
         html += '<div class="meja-area">🚭 Non Smoking</div>';
         nonSmoking.forEach(m => {
-            html += `<div class="meja-item ${m.area.toLowerCase().replace(' ', '-')} ${m.terisi ? 'terisi' : 'kosong'}" 
+            html += `<div class="meja-item ${m.terisi ? 'terisi' : 'kosong'}" 
                          data-meja="${m.nomorMeja}" 
                          data-terisi="${m.terisi}">
                          ${m.nomorMeja}
@@ -831,7 +678,7 @@ function loadMejaKosong() {
     if (smoking.length) {
         html += '<div class="meja-area">🚬 Smoking</div>';
         smoking.forEach(m => {
-            html += `<div class="meja-item ${m.area.toLowerCase().replace(' ', '-')} ${m.terisi ? 'terisi' : 'kosong'}" 
+            html += `<div class="meja-item ${m.terisi ? 'terisi' : 'kosong'}" 
                          data-meja="${m.nomorMeja}" 
                          data-terisi="${m.terisi}">
                          ${m.nomorMeja}
@@ -842,7 +689,7 @@ function loadMejaKosong() {
     if (tambahan.length) {
         html += '<div class="meja-area">➕ Tambahan</div>';
         tambahan.forEach(m => {
-            html += `<div class="meja-item tambahan ${m.terisi ? 'terisi' : 'kosong'}" 
+            html += `<div class="meja-item ${m.terisi ? 'terisi' : 'kosong'}" 
                          data-meja="${m.nomorMeja}" 
                          data-terisi="${m.terisi}">
                          ${m.nomorMeja}
@@ -912,7 +759,7 @@ function tampilkanDetailReservasi(reservasi) {
 }
 
 // ================== ATUR MEJA ==================
-document.getElementById('tambah-meja').addEventListener('click', () => {
+document.getElementById('tambah-meja').addEventListener('click', async () => {
     const no = prompt('Nomor Meja baru:');
     if (!no) return;
     if (tables.find(t => t.nomorMeja === no)) {
@@ -922,7 +769,7 @@ document.getElementById('tambah-meja').addEventListener('click', () => {
     const area = prompt('Area (Smoking / Non Smoking / Tambahan):', 'Non Smoking');
     if (area && ['Smoking','Non Smoking','Tambahan'].includes(area)) {
         tables.push({ nomorMeja: no, area });
-        saveTables();
+        await saveTables();
         renderDaftarMeja();
     } else alert('Area tidak valid');
 });
@@ -944,22 +791,26 @@ function renderDaftarMeja() {
     container.innerHTML = html;
 }
 
-window.ubahAreaMeja = (nomor, area) => {
+window.ubahAreaMeja = async (nomor, area) => {
     const meja = tables.find(t => t.nomorMeja === nomor);
     if (meja) {
         meja.area = area;
-        saveTables();
+        await saveTables();
         renderDaftarMeja();
     }
 };
 
-window.hapusMeja = (nomor) => {
+window.hapusMeja = async (nomor) => {
     if (confirm(`Hapus meja ${nomor}?`)) {
         tables = tables.filter(t => t.nomorMeja !== nomor);
-        saveTables();
+        await saveTables();
         renderDaftarMeja();
     }
 };
 
-// Inisialisasi
-updateDashboardCards();
+// ================== INITIALIZATION ==================
+// Load data saat aplikasi dimulai
+loadData();
+
+// Auto refresh setiap 30 detik (untuk sync antar device)
+setInterval(loadData, 30000);
