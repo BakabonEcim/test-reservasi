@@ -1,19 +1,12 @@
 // ================== KONFIGURASI FIREBASE ==================
 // Ganti dengan konfigurasi Firebase Anda
 const firebaseConfig = {
-
-  apiKey: "AIzaSyD0r4H0CVS45gbnO9HILt8VStX77KPA0bQ",
-
-  authDomain: "reservasi-574aa.firebaseapp.com",
-
-  projectId: "reservasi-574aa",
-
-  storageBucket: "reservasi-574aa.firebasestorage.app",
-
-  messagingSenderId: "357990257039",
-
-  appId: "1:357990257039:web:3398c968da7b24490cbbfa"
-
+    apiKey: "AIzaSyD0r4H0CVS45gbnO9HILt8VStX77KPA0bQ",
+    authDomain: "reservasi-574aa.firebaseapp.com",
+    projectId: "reservasi-574aa",
+    storageBucket: "reservasi-574aa.firebasestorage.app",
+    messagingSenderId: "357990257039",
+    appId: "1:357990257039:web:3398c968da7b24490cbbfa"
 };
 
 // Inisialisasi Firebase
@@ -245,11 +238,119 @@ function showPage(pageId) {
 // ================== FITUR A: BUAT RESERVASI ==================
 let editId = null;
 
+// FUNGSI SIMPAN RESERVASI - DIPINDAHKAN KE ATAS SEBELUM EVENT LISTENER
+async function simpanReservasi() {
+    console.log('Fungsi simpanReservasi dipanggil');
+    
+    // Validasi field wajib
+    const tanggal = document.getElementById('buat-tanggal')?.value;
+    const nama = document.getElementById('nama')?.value;
+    const jumlah = document.getElementById('jumlah')?.value;
+    const hp = document.getElementById('hp')?.value;
+    
+    if (!tanggal || !nama || !jumlah || !hp) {
+        alert('Harap isi semua field wajib (Tanggal, Nama, Jumlah Tamu, No HP)');
+        return;
+    }
+    
+    // Ambil data meja
+    let nomorMeja = [];
+    if (document.getElementById('punya-meja')?.checked) {
+        const selectedMejas = [];
+        document.querySelectorAll('.meja-pilih-item.selected').forEach(item => {
+            selectedMejas.push(item.dataset.meja);
+        });
+        if (selectedMejas.length === 0) {
+            alert('Harap pilih minimal satu meja');
+            return;
+        }
+        nomorMeja = selectedMejas;
+    }
+    
+    // Ambil data DP
+    let statusDP = 'Tidak';
+    let jenisPembayaran = null;
+    let nominalDP = null;
+    let waktuInputDP = null;
+    
+    if (document.getElementById('punya-dp')?.checked) {
+        const nominalInput = document.getElementById('nominal-dp');
+        if (!nominalInput) return;
+        
+        const nominal = parseRupiah(nominalInput.value);
+        if (!nominal || nominal <= 0) {
+            alert('Harap isi nominal DP');
+            return;
+        }
+        statusDP = 'Ya';
+        jenisPembayaran = document.getElementById('jenis-pembayaran')?.value || 'Transfer';
+        nominalDP = nominal;
+        waktuInputDP = new Date().toISOString();
+    }
+    
+    // Buat objek reservasi
+    const reservasi = {
+        id: editId || (Date.now() + '-' + Math.random().toString(36).substr(2, 5)),
+        tanggal: tanggal,
+        nama: capitalizeName(nama),
+        jumlahTamu: jumlah,
+        noHp: hp,
+        area: document.getElementById('area')?.value || 'Non Smoking',
+        nomorMeja: nomorMeja,
+        statusOrder: document.getElementById('punya-order')?.checked ? 'Ya' : 'Tidak',
+        statusDP: statusDP,
+        jenisPembayaran: jenisPembayaran,
+        nominalDP: nominalDP,
+        waktuInputDP: waktuInputDP
+    };
+    
+    // Hitung urutan DP
+    if (statusDP === 'Ya' && nominalDP > 0) {
+        reservasi.urutanDP = hitungUrutanDP(tanggal, waktuInputDP, editId);
+    }
+    
+    reservasi.statusKelengkapan = getStatusKelengkapan(reservasi);
+    
+    // Simpan
+    if (editId) {
+        const index = reservations.findIndex(r => r.id === editId);
+        if (index !== -1) reservations[index] = reservasi;
+    } else {
+        reservations.push(reservasi);
+    }
+    
+    await saveReservations();
+    alert('Reservasi Berhasil Disimpan');
+    
+    // Redirect ke list
+    const listTanggal = document.getElementById('list-tanggal');
+    if (listTanggal) listTanggal.value = tanggal;
+    showPage('list-page');
+    loadListReservasi();
+}
+
+function hitungUrutanDP(tanggal, waktu, excludeId = null) {
+    let dpReservations = reservations.filter(r => 
+        r.tanggal === tanggal && 
+        r.statusDP === 'Ya' && 
+        r.nominalDP && 
+        r.nominalDP > 0 &&
+        r.id !== excludeId
+    );
+    dpReservations.sort((a, b) => new Date(a.waktuInputDP) - new Date(b.waktuInputDP));
+    
+    let pos = 1;
+    for (let r of dpReservations) {
+        if (new Date(r.waktuInputDP) < new Date(waktu)) pos++;
+    }
+    return pos;
+}
+
 // Inisialisasi event listener setelah DOM siap
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM siap, memasang event listener...');
     
-    // Tombol Simpan Reservasi
+    // Tombol Simpan Reservasi - sekarang fungsi simpanReservasi sudah didefinisikan
     const simpanBtn = document.getElementById('simpan-reservasi');
     if (simpanBtn) {
         simpanBtn.addEventListener('click', simpanReservasi);
@@ -388,114 +489,6 @@ function loadMejaGrid(selectedMejas = []) {
             });
         });
     }, 100);
-}
-
-// Fungsi simpan reservasi (didefinisikan secara global)
-async function simpanReservasi() {
-    console.log('Fungsi simpanReservasi dipanggil');
-    
-    // Validasi field wajib
-    const tanggal = document.getElementById('buat-tanggal')?.value;
-    const nama = document.getElementById('nama')?.value;
-    const jumlah = document.getElementById('jumlah')?.value;
-    const hp = document.getElementById('hp')?.value;
-    
-    if (!tanggal || !nama || !jumlah || !hp) {
-        alert('Harap isi semua field wajib (Tanggal, Nama, Jumlah Tamu, No HP)');
-        return;
-    }
-    
-    // Ambil data meja
-    let nomorMeja = [];
-    if (document.getElementById('punya-meja')?.checked) {
-        const selectedMejas = [];
-        document.querySelectorAll('.meja-pilih-item.selected').forEach(item => {
-            selectedMejas.push(item.dataset.meja);
-        });
-        if (selectedMejas.length === 0) {
-            alert('Harap pilih minimal satu meja');
-            return;
-        }
-        nomorMeja = selectedMejas;
-    }
-    
-    // Ambil data DP
-    let statusDP = 'Tidak';
-    let jenisPembayaran = null;
-    let nominalDP = null;
-    let waktuInputDP = null;
-    
-    if (document.getElementById('punya-dp')?.checked) {
-        const nominalInput = document.getElementById('nominal-dp');
-        if (!nominalInput) return;
-        
-        const nominal = parseRupiah(nominalInput.value);
-        if (!nominal || nominal <= 0) {
-            alert('Harap isi nominal DP');
-            return;
-        }
-        statusDP = 'Ya';
-        jenisPembayaran = document.getElementById('jenis-pembayaran')?.value || 'Transfer';
-        nominalDP = nominal;
-        waktuInputDP = new Date().toISOString();
-    }
-    
-    // Buat objek reservasi
-    const reservasi = {
-        id: editId || (Date.now() + '-' + Math.random().toString(36).substr(2, 5)),
-        tanggal: tanggal,
-        nama: capitalizeName(nama),
-        jumlahTamu: jumlah,
-        noHp: hp,
-        area: document.getElementById('area')?.value || 'Non Smoking',
-        nomorMeja: nomorMeja,
-        statusOrder: document.getElementById('punya-order')?.checked ? 'Ya' : 'Tidak',
-        statusDP: statusDP,
-        jenisPembayaran: jenisPembayaran,
-        nominalDP: nominalDP,
-        waktuInputDP: waktuInputDP
-    };
-    
-    // Hitung urutan DP
-    if (statusDP === 'Ya' && nominalDP > 0) {
-        reservasi.urutanDP = hitungUrutanDP(tanggal, waktuInputDP, editId);
-    }
-    
-    reservasi.statusKelengkapan = getStatusKelengkapan(reservasi);
-    
-    // Simpan
-    if (editId) {
-        const index = reservations.findIndex(r => r.id === editId);
-        if (index !== -1) reservations[index] = reservasi;
-    } else {
-        reservations.push(reservasi);
-    }
-    
-    await saveReservations();
-    alert('Reservasi Berhasil Disimpan');
-    
-    // Redirect ke list
-    const listTanggal = document.getElementById('list-tanggal');
-    if (listTanggal) listTanggal.value = tanggal;
-    showPage('list-page');
-    loadListReservasi();
-}
-
-function hitungUrutanDP(tanggal, waktu, excludeId = null) {
-    let dpReservations = reservations.filter(r => 
-        r.tanggal === tanggal && 
-        r.statusDP === 'Ya' && 
-        r.nominalDP && 
-        r.nominalDP > 0 &&
-        r.id !== excludeId
-    );
-    dpReservations.sort((a, b) => new Date(a.waktuInputDP) - new Date(b.waktuInputDP));
-    
-    let pos = 1;
-    for (let r of dpReservations) {
-        if (new Date(r.waktuInputDP) < new Date(waktu)) pos++;
-    }
-    return pos;
 }
 
 // ================== FITUR C: LIST RESERVASI ==================
