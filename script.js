@@ -78,9 +78,18 @@ document.querySelectorAll('.menu-btn').forEach(btn => {
             showPage('tambah-dp-page');
             document.getElementById('tambah-dp-tanggal').value = getToday();
             loadReservasiButuhDP();
-        } else if (action === 'list') showPage('list-page');
-        else if (action === 'cek') showPage('cek-page');
-        else if (action === 'atur-meja') showPage('atur-meja-page');
+        } else if (action === 'list') {
+            showPage('list-page');
+            document.getElementById('list-tanggal').value = getToday();
+            loadListReservasi();
+        } else if (action === 'cek') {
+            showPage('cek-page');
+            document.getElementById('cek-tanggal').value = getToday();
+            loadMejaKosong();
+        } else if (action === 'atur-meja') {
+            showPage('atur-meja-page');
+            renderDaftarMeja();
+        }
     });
 });
 
@@ -91,20 +100,6 @@ document.querySelectorAll('.back-btn').forEach(btn => {
 function showPage(pageId) {
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     document.getElementById(pageId).classList.add('active');
-    if (pageId === 'dashboard-page') {
-        document.getElementById('current-date').innerText = getToday();
-        updateDashboardCards();
-    } else if (pageId === 'buat-page') {
-        document.getElementById('buat-tanggal').value = getToday();
-    } else if (pageId === 'list-page') {
-        document.getElementById('list-tanggal').value = getToday();
-        loadListReservasi();
-    } else if (pageId === 'cek-page') {
-        document.getElementById('cek-tanggal').value = getToday();
-        loadMejaKosong();
-    } else if (pageId === 'atur-meja-page') {
-        renderDaftarMeja();
-    }
 }
 
 // ================== FITUR A: BUAT RESERVASI (1 HALAMAN) ==================
@@ -122,6 +117,7 @@ function resetFormReservasi() {
     document.getElementById('pilih-meja-container').style.display = 'none';
     document.getElementById('dp-container').style.display = 'none';
     document.getElementById('nominal-dp').value = '';
+    document.getElementById('buat-tanggal').value = getToday();
 }
 
 // Event listener untuk checkbox punya meja
@@ -209,21 +205,24 @@ function loadMejaGrid(selectedMejas = []) {
     container.innerHTML = html;
     
     // Event klik pada meja
-    let selected = [...selectedMejas];
-    document.querySelectorAll('.meja-pilih-item.tersedia').forEach(item => {
-        item.addEventListener('click', () => {
-            const meja = item.dataset.meja;
-            if (selected.includes(meja)) {
-                selected = selected.filter(m => m !== meja);
-                item.classList.remove('selected');
-            } else {
-                selected.push(meja);
-                item.classList.add('selected');
-            }
+    setTimeout(() => {
+        let selected = [...selectedMejas];
+        document.querySelectorAll('.meja-pilih-item.tersedia').forEach(item => {
+            item.addEventListener('click', function() {
+                const meja = this.dataset.meja;
+                if (selected.includes(meja)) {
+                    selected = selected.filter(m => m !== meja);
+                    this.classList.remove('selected');
+                } else {
+                    selected.push(meja);
+                    this.classList.add('selected');
+                }
+            });
         });
-    });
+    }, 100);
 }
 
+// Tombol Simpan Reservasi
 document.getElementById('simpan-reservasi').addEventListener('click', function() {
     // Validasi field wajib
     const tanggal = document.getElementById('buat-tanggal').value;
@@ -310,6 +309,24 @@ document.getElementById('simpan-reservasi').addEventListener('click', function()
     showPage('list-page');
     loadListReservasi();
 });
+
+// Fungsi hitung urutan DP
+function hitungUrutanDP(tanggal, waktu, excludeId = null) {
+    let dpReservations = reservations.filter(r => 
+        r.tanggal === tanggal && 
+        r.statusDP === 'Ya' && 
+        r.nominalDP && 
+        r.nominalDP > 0 &&
+        r.id !== excludeId
+    );
+    dpReservations.sort((a, b) => new Date(a.waktuInputDP) - new Date(b.waktuInputDP));
+    
+    let pos = 1;
+    for (let r of dpReservations) {
+        if (new Date(r.waktuInputDP) < new Date(waktu)) pos++;
+    }
+    return pos;
+}
 
 // ================== FITUR B1: TAMBAH MEJA ==================
 document.querySelector('#tambah-meja-page .btn-load-tanggal').addEventListener('click', loadReservasiButuhMeja);
@@ -407,20 +424,22 @@ function tampilkanFormTambahMeja(id) {
     container.innerHTML = html;
     
     let selectedMejas = [];
-    document.querySelectorAll('#grid-tambah-meja .meja-pilih-item.tersedia').forEach(item => {
-        item.addEventListener('click', () => {
-            const meja = item.dataset.meja;
-            if (selectedMejas.includes(meja)) {
-                selectedMejas = selectedMejas.filter(m => m !== meja);
-                item.classList.remove('selected');
-            } else {
-                selectedMejas.push(meja);
-                item.classList.add('selected');
-            }
+    setTimeout(() => {
+        document.querySelectorAll('#grid-tambah-meja .meja-pilih-item.tersedia').forEach(item => {
+            item.addEventListener('click', function() {
+                const meja = this.dataset.meja;
+                if (selectedMejas.includes(meja)) {
+                    selectedMejas = selectedMejas.filter(m => m !== meja);
+                    this.classList.remove('selected');
+                } else {
+                    selectedMejas.push(meja);
+                    this.classList.add('selected');
+                }
+            });
         });
-    });
+    }, 100);
     
-    document.getElementById('simpan-tambah-meja').addEventListener('click', () => {
+    document.getElementById('simpan-tambah-meja').addEventListener('click', function() {
         if (selectedMejas.length === 0) {
             alert('Pilih minimal satu meja');
             return;
@@ -496,7 +515,7 @@ function tampilkanFormTambahDP(id) {
     `;
     container.innerHTML = html;
     
-    document.getElementById('simpan-tambah-dp').addEventListener('click', () => {
+    document.getElementById('simpan-tambah-dp').addEventListener('click', function() {
         const jenis = document.getElementById('tambah-dp-jenis').value;
         const nominal = document.getElementById('tambah-dp-nominal').value;
         
@@ -518,24 +537,6 @@ function tampilkanFormTambahDP(id) {
     });
 }
 
-// Fungsi hitung urutan DP
-function hitungUrutanDP(tanggal, waktu, excludeId = null) {
-    let dpReservations = reservations.filter(r => 
-        r.tanggal === tanggal && 
-        r.statusDP === 'Ya' && 
-        r.nominalDP && 
-        r.nominalDP > 0 &&
-        r.id !== excludeId
-    );
-    dpReservations.sort((a, b) => new Date(a.waktuInputDP) - new Date(b.waktuInputDP));
-    
-    let pos = 1;
-    for (let r of dpReservations) {
-        if (new Date(r.waktuInputDP) < new Date(waktu)) pos++;
-    }
-    return pos;
-}
-
 // ================== FITUR C: LIST RESERVASI ==================
 let currentView = 'table';
 
@@ -546,6 +547,8 @@ document.getElementById('toggle-view').addEventListener('click', () => {
 });
 
 document.getElementById('sort-by').addEventListener('change', loadListReservasi);
+
+// Tombol Muat di List Reservasi
 document.querySelector('#list-page .btn-load-tanggal').addEventListener('click', loadListReservasi);
 
 function loadListReservasi() {
@@ -666,18 +669,22 @@ function editReservasi(id) {
         setTimeout(() => {
             loadMejaGrid(reservasi.nomorMeja || []);
         }, 100);
+    } else {
+        document.getElementById('pilih-meja-container').style.display = 'none';
     }
     
     if (document.getElementById('punya-dp').checked) {
         document.getElementById('dp-container').style.display = 'block';
         document.getElementById('jenis-pembayaran').value = reservasi.jenisPembayaran || 'Cash';
         document.getElementById('nominal-dp').value = reservasi.nominalDP || '';
+    } else {
+        document.getElementById('dp-container').style.display = 'none';
     }
     
     showPage('buat-page');
 }
 
-// Atur kolom
+// ================== ATUR KOLOM ==================
 document.getElementById('atur-kolom').addEventListener('click', () => {
     const modal = document.getElementById('modal-kolom');
     const list = document.getElementById('kolom-list');
