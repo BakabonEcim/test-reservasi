@@ -5,12 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
     <title>Reservasi Restoran - Internal</title>
     <link rel="stylesheet" href="style.css">
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
     <div id="app">
         <!-- Dashboard -->
         <div id="dashboard-page" class="page active">
-            <h1>List Reservasi</h1> <!-- Judul diubah -->
+            <h1>List Reservasi</h1>
             <div class="date-info">Hari ini: <span id="current-date"></span></div>
             
             <!-- Card Info Dashboard -->
@@ -35,10 +38,6 @@
                 <button class="menu-btn" data-action="buat">➕ Buat Reservasi Baru</button>
                 
                 <!-- Baris 2 -->
-                <button class="menu-btn" data-action="tambah-meja">🪑 Tambah Meja</button>
-                <button class="menu-btn" data-action="tambah-dp">💰 Tambah DP</button>
-                
-                <!-- Baris 3 -->
                 <button class="menu-btn" data-action="cek">🔍 Cek Meja Kosong</button>
                 <button class="menu-btn" data-action="atur-meja">⚙️ Atur Meja</button>
             </div>
@@ -115,30 +114,6 @@
 
                 <button type="button" class="btn" id="simpan-reservasi">Simpan Reservasi</button>
             </form>
-            <button class="back-btn">← Kembali ke Dashboard</button>
-        </div>
-
-        <!-- Halaman Tambah Meja -->
-        <div id="tambah-meja-page" class="page">
-            <h2>🪑 Tambah Meja</h2>
-            <div class="date-picker-container">
-                <label>Pilih Tanggal: <input type="date" id="tambah-meja-tanggal" class="date-picker"></label>
-                <button class="btn-load-tanggal">Muat</button>
-            </div>
-            <div id="daftar-reservasi-butuh-meja"></div>
-            <div id="form-tambah-meja" style="display: none;"></div>
-            <button class="back-btn">← Kembali ke Dashboard</button>
-        </div>
-
-        <!-- Halaman Tambah DP -->
-        <div id="tambah-dp-page" class="page">
-            <h2>💰 Tambah DP</h2>
-            <div class="date-picker-container">
-                <label>Pilih Tanggal: <input type="date" id="tambah-dp-tanggal" class="date-picker"></label>
-                <button class="btn-load-tanggal">Muat</button>
-            </div>
-            <div id="daftar-reservasi-butuh-dp"></div>
-            <div id="form-tambah-dp" style="display: none;"></div>
             <button class="back-btn">← Kembali ke Dashboard</button>
         </div>
 
