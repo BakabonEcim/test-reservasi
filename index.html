@@ -10,7 +10,7 @@
     <div id="app">
         <!-- Dashboard -->
         <div id="dashboard-page" class="page active">
-            <h1>Dashboard Restoran</h1>
+            <h1>List Reservasi</h1> <!-- Judul diubah -->
             <div class="date-info">Hari ini: <span id="current-date"></span></div>
             
             <!-- Card Info Dashboard -->
@@ -30,10 +30,15 @@
             </div>
 
             <div class="menu-grid">
+                <!-- Baris 1 -->
+                <button class="menu-btn" data-action="list">📋 List Reservasi</button>
                 <button class="menu-btn" data-action="buat">➕ Buat Reservasi Baru</button>
+                
+                <!-- Baris 2 -->
                 <button class="menu-btn" data-action="tambah-meja">🪑 Tambah Meja</button>
                 <button class="menu-btn" data-action="tambah-dp">💰 Tambah DP</button>
-                <button class="menu-btn" data-action="list">📋 List Reservasi</button>
+                
+                <!-- Baris 3 -->
                 <button class="menu-btn" data-action="cek">🔍 Cek Meja Kosong</button>
                 <button class="menu-btn" data-action="atur-meja">⚙️ Atur Meja</button>
             </div>
@@ -104,7 +109,7 @@
                     </div>
                     <div class="form-group">
                         <label>Nominal DP</label>
-                        <input type="number" id="nominal-dp" min="0">
+                        <input type="text" id="nominal-dp" min="0" placeholder="Contoh: 10,000">
                     </div>
                 </div>
 
