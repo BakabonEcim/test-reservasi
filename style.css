@@ -394,3 +394,57 @@ th {
     width: 100%;
     cursor: pointer;
 }
+/* Tambahan CSS */
+.required {
+    color: #dc3545;
+    margin-left: 3px;
+}
+
+#form-reservasi-langsung {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+#form-reservasi-langsung .form-group {
+    margin-bottom: 15px;
+}
+
+#form-reservasi-langsung label {
+    font-weight: 600;
+    color: #333;
+}
+
+#form-reservasi-langsung input[type="checkbox"] {
+    margin-right: 8px;
+    transform: scale(1.2);
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.status-lengkap {
+    background: #28a745;
+    color: white;
+}
+
+.status-belum-meja {
+    background: #dc3545;
+    color: white;
+}
+
+.status-belum-dp {
+    background: #ffc107;
+    color: #333;
+}
+
+.status-belum-meja-dp {
+    background: #6c757d;
+    color: white;
+}
