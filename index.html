@@ -12,6 +12,23 @@
         <div id="dashboard-page" class="page active">
             <h1>Dashboard Restoran</h1>
             <div class="date-info">Hari ini: <span id="current-date"></span></div>
+            
+            <!-- Card Info Dashboard -->
+            <div class="dashboard-cards">
+                <div class="info-card">
+                    <div class="card-label">Reservasi Hari Ini</div>
+                    <div class="card-value" id="dashboard-reservasi-count">0</div>
+                </div>
+                <div class="info-card">
+                    <div class="card-label">Meja Available</div>
+                    <div class="card-value" id="dashboard-meja-available">0</div>
+                </div>
+                <div class="info-card">
+                    <div class="card-label">Belum Lengkap</div>
+                    <div class="card-value" id="dashboard-belum-lengkap">0</div>
+                </div>
+            </div>
+
             <div class="menu-grid">
                 <button class="menu-btn" data-action="buat">➕ Buat Reservasi Baru</button>
                 <button class="menu-btn" data-action="tambah">🪑 Tambah Meja / DP</button>
@@ -93,6 +110,16 @@
                 <div id="kolom-list"></div>
                 <button id="simpan-kolom">Simpan</button>
                 <button id="tutup-modal">Tutup</button>
+            </div>
+        </div>
+
+        <!-- Modal Detail Reservasi -->
+        <div id="modal-detail" class="modal" style="display: none;">
+            <div class="modal-content">
+                <h3>Detail Reservasi</h3>
+                <div id="detail-reservasi"></div>
+                <button id="edit-detail">✏️ Edit Reservasi</button>
+                <button id="tutup-detail">Tutup</button>
             </div>
         </div>
     </div>
