@@ -448,3 +448,42 @@ th {
     background: #6c757d;
     color: white;
 }
+/* Tambahan CSS untuk checkbox */
+.checkbox-group {
+    margin: 15px 0;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    font-weight: normal !important;
+}
+
+.checkbox-label input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    margin-right: 10px;
+    cursor: pointer;
+}
+
+/* Status badge colors */
+.status-lengkap {
+    background: #28a745;
+    color: white;
+}
+
+.status-belum-ada-meja {
+    background: #dc3545;
+    color: white;
+}
+
+.status-belum-ada-dp {
+    background: #ffc107;
+    color: #333;
+}
+
+.status-belum-ada-meja-&-dp {
+    background: #6c757d;
+    color: white;
+}
