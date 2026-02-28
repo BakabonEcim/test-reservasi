@@ -14,9 +14,9 @@ const db = firebase.firestore();
 
 // ==================== GLOBAL VARIABLES ====================
 let currentPage = 'dashboard';
-let tables = []; // data meja dari Firestore
-let reservations = []; // data reservasi untuk tanggal tertentu
-let selectedDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+let tables = [];
+let reservations = [];
+let selectedDate = new Date().toISOString().split('T')[0];
 
 // ==================== UTILITY FUNCTIONS ====================
 function showNotification(message, isError = false) {
@@ -41,7 +41,6 @@ function capitalizeWords(str) {
     return str.replace(/\b\w/g, l => l.toUpperCase());
 }
 
-// Format tanggal Indonesia (dd/mm/yyyy)
 function formatDate(dateString) {
     if (!dateString) return '';
     const d = new Date(dateString);
@@ -52,7 +51,6 @@ function formatDate(dateString) {
     return `${day}/${month}/${year}`;
 }
 
-// Simpan ke localStorage
 function saveToLocalStorage(key, data) {
     try {
         localStorage.setItem(key, JSON.stringify(data));
@@ -61,7 +59,6 @@ function saveToLocalStorage(key, data) {
     }
 }
 
-// Muat dari localStorage
 function loadFromLocalStorage(key) {
     try {
         return JSON.parse(localStorage.getItem(key)) || null;
@@ -146,21 +143,24 @@ async function saveReservation(resData) {
         // Hitung status kelengkapan
         resData.statusKelengkapan = getStatusKelengkapan(resData);
         
-        // Jika DP dicentang dan nominal > 0, set dpTimestamp (jika baru atau berubah)
+        // Jika DP dicentang dan nominal > 0, pastikan dpTimestamp ada (kecuali jika sedang hapus DP)
         if (resData.dpCheck && resData.dpNominal > 0) {
-            // Jika tidak ada dpTimestamp sebelumnya atau DP sebelumnya false, set ke server timestamp
             if (!resData.dpTimestamp) {
+                // Jika baru centang atau nominal diisi, set timestamp baru
                 resData.dpTimestamp = firebase.firestore.FieldValue.serverTimestamp();
             }
+            // Jika sudah ada dpTimestamp, biarkan (tidak berubah)
         } else {
-            // Jika DP tidak dicentang, hapus dpTimestamp
+            // Jika DP tidak dicentang atau nominal 0, hapus semua data DP
+            resData.dpCheck = false;
+            resData.dpNominal = 0;
+            resData.dpJenis = '';
             resData.dpTimestamp = null;
         }
 
         if (resData.id) {
             await db.collection('reservations').doc(resData.id).set(resData, { merge: true });
         } else {
-            // Tambah createdAt untuk urutan awal
             resData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
             const docRef = await db.collection('reservations').add(resData);
             resData.id = docRef.id;
@@ -199,20 +199,25 @@ async function deleteReservation(resId, tanggal) {
 
 // Hitung urutan DP berdasarkan dpTimestamp
 function calculateUrutanDP() {
+    // Ambil reservasi yang memiliki DP (dpCheck true, dpNominal > 0, dan dpTimestamp ada)
     const withDP = reservations
         .filter(r => r.dpCheck && r.dpNominal > 0 && r.dpTimestamp)
         .sort((a, b) => {
-            const timeA = a.dpTimestamp ? (a.dpTimestamp.seconds || a.dpTimestamp) : 0;
-            const timeB = b.dpTimestamp ? (b.dpTimestamp.seconds || b.dpTimestamp) : 0;
+            const timeA = a.dpTimestamp ? (a.dpTimestamp.seconds || new Date(a.dpTimestamp).getTime() / 1000) : 0;
+            const timeB = b.dpTimestamp ? (b.dpTimestamp.seconds || new Date(b.dpTimestamp).getTime() / 1000) : 0;
             return timeA - timeB;
         });
     
+    // Beri nomor urut mulai dari 1
     withDP.forEach((r, index) => {
         r.urutanDP = index + 1;
     });
     
+    // Yang tidak memiliki DP, hapus properti urutanDP agar tidak tampil 0
     reservations.forEach(r => {
-        if (!r.dpCheck || r.dpNominal <= 0) r.urutanDP = 0;
+        if (!r.dpCheck || r.dpNominal <= 0 || !r.dpTimestamp) {
+            delete r.urutanDP; // tidak punya urutan
+        }
     });
 }
 
@@ -223,6 +228,72 @@ function getStatusKelengkapan(r) {
     if (!hasMeja && hasDP) return 'Belum ada Meja';
     if (hasMeja && !hasDP) return 'Belum ada DP';
     return 'Belum ada Meja & DP';
+}
+
+// Fungsi global untuk menampilkan modal detail reservasi (dipanggil dari berbagai tempat)
+function showReservationDetailModal(r) {
+    let dpInfo = 'Tidak ada';
+    let dpActions = '';
+    if (r.dpCheck && r.dpNominal > 0 && r.dpTimestamp) {
+        let dpDate = '';
+        if (r.dpTimestamp.seconds) {
+            dpDate = formatDate(new Date(r.dpTimestamp.seconds * 1000));
+        } else if (r.dpTimestamp instanceof Date) {
+            dpDate = formatDate(r.dpTimestamp);
+        } else if (typeof r.dpTimestamp === 'string') {
+            dpDate = formatDate(r.dpTimestamp);
+        }
+        const jenis = r.dpJenis === 'transfer' ? 'TF' : 'Cash';
+        dpInfo = `${formatRupiah(r.dpNominal)} (${jenis} pada ${dpDate})`;
+        dpActions = `<button class="btn btn-sm btn-warning" id="hapusDPBtn" data-id="${r.id}">Hapus DP</button>`;
+    }
+    
+    const modal = document.getElementById('modal');
+    const modalBody = document.getElementById('modal-body');
+    modalBody.innerHTML = `
+        <h3>Detail Reservasi</h3>
+        <p><strong>Nama:</strong> ${r.nama}</p>
+        <p><strong>Jumlah Tamu:</strong> ${r.jumlahTamu}</p>
+        <p><strong>No HP:</strong> ${r.noHp}</p>
+        <p><strong>Area:</strong> ${r.areaPreferensi === 'non' ? 'Non Smoking' : 'Smoking'}</p>
+        <p><strong>Meja:</strong> ${r.nomorMeja ? r.nomorMeja.join(', ') : '-'}</p>
+        <p><strong>Order:</strong> ${r.sudahOrder ? 'Ya' : 'Tidak'}</p>
+        <p><strong>DP:</strong> ${dpInfo}</p>
+        ${r.urutanDP ? `<p><strong>Urutan DP:</strong> ${r.urutanDP}</p>` : ''}
+        <p><strong>Catatan:</strong> ${r.catatan || '-'}</p>
+        <div class="flex" style="justify-content: space-between; margin-top: 15px;">
+            <div>
+                <button class="btn btn-primary" onclick="editReservasi('${r.id}')">Edit</button>
+                <button class="btn btn-danger" onclick="hapusReservasi('${r.id}')">Hapus</button>
+            </div>
+            ${dpActions}
+        </div>
+    `;
+    modal.classList.remove('hidden');
+    
+    // Tambah event listener untuk tombol hapus DP jika ada
+    const hapusDPBtn = document.getElementById('hapusDPBtn');
+    if (hapusDPBtn) {
+        hapusDPBtn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            if (confirm('Hapus data DP? Urutan DP akan dihapus dan bisa diisi ulang dengan urutan baru.')) {
+                // Hapus data DP dari reservasi
+                r.dpCheck = false;
+                r.dpNominal = 0;
+                r.dpJenis = '';
+                r.dpTimestamp = null;
+                delete r.urutanDP;
+                await saveReservation(r);
+                modal.classList.add('hidden');
+                // Refresh tampilan jika perlu
+                if (currentPage === 'list-reservasi') {
+                    renderPage('list-reservasi');
+                } else if (currentPage === 'cek-meja') {
+                    renderPage('cek-meja');
+                }
+            }
+        });
+    }
 }
 
 // ==================== RENDER PAGE ====================
@@ -264,20 +335,14 @@ function renderDashboard() {
     const todayRes = reservations.filter(r => r.tanggal === today);
     const totalMeja = tables.length;
     
-    // Meja kosong: total meja - meja terpakai hari ini
     const mejaTerpakai = new Set();
     todayRes.forEach(r => {
         if (r.nomorMeja) r.nomorMeja.forEach(m => mejaTerpakai.add(m));
     });
     const mejaKosong = totalMeja - mejaTerpakai.size;
     
-    // Reservasi belum DP: sudah punya meja tapi belum DP
     const belumDP = todayRes.filter(r => r.nomorMeja && r.nomorMeja.length > 0 && (!r.dpCheck || r.dpNominal <= 0)).length;
-    
-    // Reservasi tanpa meja: belum punya meja (DP bisa ada atau tidak)
     const tanpaMeja = todayRes.filter(r => !r.nomorMeja || r.nomorMeja.length === 0).length;
-    
-    // Reservasi hari ini
     const reservasiHariIni = todayRes.length;
     
     return `
@@ -309,13 +374,15 @@ function initDashboard() {}
 
 // Reservasi Baru
 function renderReservasiBaru() {
+    // Set min tanggal ke hari ini
+    const today = new Date().toISOString().split('T')[0];
     return `
         <div class="page">
             <h2>Buat Reservasi Baru</h2>
             <form id="form-reservasi">
                 <div class="form-group">
                     <label>Tanggal Reservasi</label>
-                    <input type="date" id="tanggal" value="${selectedDate}" required>
+                    <input type="date" id="tanggal" min="${today}" value="${selectedDate}" required>
                 </div>
                 <div class="form-group">
                     <label>Nama Tamu</label>
@@ -387,13 +454,13 @@ async function initReservasiBaru() {
     const gridMeja = document.getElementById('gridMeja');
     const selectedMejaDisplay = document.getElementById('selectedMejaDisplay');
     const namaInput = document.getElementById('nama');
+    const tanggalInput = document.getElementById('tanggal');
+    const today = new Date().toISOString().split('T')[0];
     
-    // Auto kapitalisasi setiap kata saat user mengetik (pada blur atau input)
     namaInput.addEventListener('blur', () => {
         namaInput.value = capitalizeWords(namaInput.value);
     });
     
-    // Load meja
     if (tables.length === 0) await loadTablesFromFirebase();
     
     mejaCheck.addEventListener('change', () => {
@@ -420,7 +487,7 @@ async function initReservasiBaru() {
     });
     
     async function renderMejaGrid() {
-        const tanggal = document.getElementById('tanggal').value;
+        const tanggal = tanggalInput.value;
         await loadReservationsByDate(tanggal);
         const mejaTerpakai = new Set();
         reservations.forEach(r => {
@@ -451,14 +518,24 @@ async function initReservasiBaru() {
         selectedMejaDisplay.textContent = selected.length ? 'Meja ' + selected.join(', ') : '';
     }
     
-    document.getElementById('tanggal').addEventListener('change', () => {
+    tanggalInput.addEventListener('change', () => {
+        if (tanggalInput.value < today) {
+            alert('Tanggal reservasi tidak boleh sebelum hari ini.');
+            tanggalInput.value = today;
+        }
         if (mejaCheck.checked) renderMejaGrid();
     });
     
     document.getElementById('form-reservasi').addEventListener('submit', async (e) => {
         e.preventDefault();
         
-        const tanggal = document.getElementById('tanggal').value;
+        const tanggal = tanggalInput.value;
+        if (tanggal < today) {
+            alert('Tanggal reservasi tidak boleh sebelum hari ini.');
+            tanggalInput.value = today;
+            return;
+        }
+        
         const nama = capitalizeWords(document.getElementById('nama').value);
         const jumlahTamu = parseInt(document.getElementById('jumlahTamu').value);
         const noHp = document.getElementById('noHp').value;
@@ -489,7 +566,6 @@ async function initReservasiBaru() {
             return;
         }
         
-        // Ambil id jika sedang edit
         const idInput = document.getElementById('reservasiId');
         const id = idInput ? idInput.value : null;
         
@@ -555,7 +631,11 @@ async function initListReservasi() {
     function sortReservations() {
         const sortField = sortBySelect.value;
         if (sortField === 'urutanDP') {
-            reservations.sort((a, b) => (a.urutanDP || 999) - (b.urutanDP || 999));
+            reservations.sort((a, b) => {
+                const aUrut = a.urutanDP || 9999;
+                const bUrut = b.urutanDP || 9999;
+                return aUrut - bUrut;
+            });
         } else if (sortField === 'nomorMeja') {
             reservations.sort((a, b) => {
                 const aMeja = a.nomorMeja && a.nomorMeja.length ? a.nomorMeja[0] : '';
@@ -572,17 +652,15 @@ async function initListReservasi() {
         const container = document.getElementById('listContainer');
         container.innerHTML = renderTable();
         
-        // Tambah event listener untuk baris tabel (klik)
         document.querySelectorAll('#listContainer tbody tr').forEach(row => {
             row.addEventListener('click', (e) => {
-                // Jangan buka modal jika klik tombol
                 if (e.target.tagName === 'BUTTON') return;
                 const id = row.dataset.id;
-                showReservationDetail(id);
+                const r = reservations.find(r => r.id === id);
+                if (r) showReservationDetailModal(r);
             });
         });
         
-        // Tombol edit/hapus di dalam baris
         document.querySelectorAll('.edit-reservasi').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -611,12 +689,13 @@ async function initListReservasi() {
                 'Belum ada Meja & DP': 'badge-belum-meja-dp'
             }[r.statusKelengkapan] || '';
             const statusBadge = `<span class="badge ${statusClass}">${r.statusKelengkapan}</span>`;
+            const urutanDP = r.urutanDP ? r.urutanDP : '-';
             
             html += `<tr data-id="${r.id}">`;
             html += `<td>${mejaStr}</td>`;
             html += `<td>${r.nama}</td>`;
             html += `<td>${r.jumlahTamu}</td>`;
-            html += `<td>${r.urutanDP || 0}</td>`;
+            html += `<td>${urutanDP}</td>`;
             html += `<td>${statusBadge}</td>`;
             html += `<td>
                 <button class="btn btn-sm btn-primary edit-reservasi" data-id="${r.id}">Edit</button>
@@ -625,39 +704,6 @@ async function initListReservasi() {
         });
         html += '</tbody></table></div>';
         return html;
-    }
-    
-    function showReservationDetail(id) {
-        const r = reservations.find(r => r.id === id);
-        if (!r) return;
-        
-        // Format tanggal DP
-        let dpInfo = 'Tidak';
-        if (r.dpCheck && r.dpNominal > 0) {
-            const dpDate = r.dpTimestamp ? formatDate(r.dpTimestamp.seconds ? new Date(r.dpTimestamp.seconds * 1000) : r.dpTimestamp) : '';
-            const jenis = r.dpJenis === 'transfer' ? 'TF' : 'Cash';
-            dpInfo = `${formatRupiah(r.dpNominal)} (${jenis} pada ${dpDate || '?'})`;
-        }
-        
-        const modal = document.getElementById('modal');
-        const modalBody = document.getElementById('modal-body');
-        modalBody.innerHTML = `
-            <h3>Detail Reservasi</h3>
-            <p><strong>Nama:</strong> ${r.nama}</p>
-            <p><strong>Jumlah Tamu:</strong> ${r.jumlahTamu}</p>
-            <p><strong>No HP:</strong> ${r.noHp}</p>
-            <p><strong>Area:</strong> ${r.areaPreferensi === 'non' ? 'Non Smoking' : 'Smoking'}</p>
-            <p><strong>Meja:</strong> ${r.nomorMeja ? r.nomorMeja.join(', ') : '-'}</p>
-            <p><strong>Order:</strong> ${r.sudahOrder ? 'Ya' : 'Tidak'}</p>
-            <p><strong>DP:</strong> ${dpInfo}</p>
-            <p><strong>Urutan DP:</strong> ${r.urutanDP || 0}</p>
-            <p><strong>Catatan:</strong> ${r.catatan || '-'}</p>
-            <div class="flex">
-                <button class="btn btn-primary" onclick="editReservasi('${r.id}')">Edit</button>
-                <button class="btn btn-danger" onclick="hapusReservasi('${r.id}')">Hapus</button>
-            </div>
-        `;
-        modal.classList.remove('hidden');
     }
     
     muatBtn.addEventListener('click', loadAndDisplay);
@@ -712,7 +758,7 @@ async function initCekMeja() {
                 if (terisi) {
                     const reservasiMeja = reservations.filter(r => r.nomorMeja && r.nomorMeja.includes(meja));
                     if (reservasiMeja.length > 0) {
-                        tampilkanDetailReservasi(reservasiMeja[0]);
+                        showReservationDetailModal(reservasiMeja[0]);
                     }
                 } else {
                     if (confirm(`Buat reservasi baru dengan meja ${meja}?`)) {
@@ -727,43 +773,13 @@ async function initCekMeja() {
                                     m.classList.add('selected');
                                 }
                             });
-                            updateSelectedMejaDisplay(); // perlu didefinisikan di scope global? Kita panggil fungsi yang ada di initReservasiBaru? Tidak bisa. Solusi: kita akan buat fungsi global atau trigger event. Untuk sederhana, kita abaikan dulu, user bisa memilih manual.
+                            const display = document.getElementById('selectedMejaDisplay');
+                            if (display) display.textContent = 'Meja ' + meja;
                         }, 100);
                     }
                 }
             });
         });
-    }
-    
-    function tampilkanDetailReservasi(r) {
-        // Sama seperti di list, bisa pakai fungsi showReservationDetail yang sama
-        // Tapi karena berbeda scope, kita buat ulang sederhana
-        let dpInfo = 'Tidak';
-        if (r.dpCheck && r.dpNominal > 0) {
-            const dpDate = r.dpTimestamp ? formatDate(r.dpTimestamp.seconds ? new Date(r.dpTimestamp.seconds * 1000) : r.dpTimestamp) : '';
-            const jenis = r.dpJenis === 'transfer' ? 'TF' : 'Cash';
-            dpInfo = `${formatRupiah(r.dpNominal)} (${jenis} pada ${dpDate || '?'})`;
-        }
-        
-        const modal = document.getElementById('modal');
-        const modalBody = document.getElementById('modal-body');
-        modalBody.innerHTML = `
-            <h3>Detail Reservasi</h3>
-            <p><strong>Nama:</strong> ${r.nama}</p>
-            <p><strong>Jumlah Tamu:</strong> ${r.jumlahTamu}</p>
-            <p><strong>No HP:</strong> ${r.noHp}</p>
-            <p><strong>Area:</strong> ${r.areaPreferensi === 'non' ? 'Non Smoking' : 'Smoking'}</p>
-            <p><strong>Meja:</strong> ${r.nomorMeja ? r.nomorMeja.join(', ') : '-'}</p>
-            <p><strong>Order:</strong> ${r.sudahOrder ? 'Ya' : 'Tidak'}</p>
-            <p><strong>DP:</strong> ${dpInfo}</p>
-            <p><strong>Urutan DP:</strong> ${r.urutanDP || 0}</p>
-            <p><strong>Catatan:</strong> ${r.catatan || '-'}</p>
-            <div class="flex">
-                <button class="btn btn-primary" onclick="editReservasi('${r.id}')">Edit</button>
-                <button class="btn btn-danger" onclick="hapusReservasi('${r.id}')">Hapus</button>
-            </div>
-        `;
-        modal.classList.remove('hidden');
     }
     
     tampilBtn.addEventListener('click', tampilkan);
@@ -917,7 +933,6 @@ async function initAturMeja() {
                 return;
             }
             
-            // Simpan semua meja baru
             for (let table of newTables) {
                 await saveTableToFirebase(table);
             }
@@ -951,7 +966,6 @@ window.editReservasi = function(id) {
                         item.classList.add('selected');
                     }
                 });
-                // Update display
                 const selectedMejaDisplay = document.getElementById('selectedMejaDisplay');
                 if (selectedMejaDisplay) {
                     selectedMejaDisplay.textContent = 'Meja ' + reservasi.nomorMeja.join(', ');
