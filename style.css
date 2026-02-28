@@ -1,467 +1,177 @@
 * {
     box-sizing: border-box;
+    font-family: Arial, sans-serif;
+}
+body {
     margin: 0;
     padding: 0;
+    background: #f4f4f4;
 }
-
-body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: #f5f5f5;
-    padding: 10px;
+header {
+    background: #333;
+    color: white;
+    padding: 1rem;
+    text-align: center;
 }
-
-#app {
-    max-width: 600px;
-    margin: 0 auto;
-    background: white;
-    border-radius: 12px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    padding: 16px;
+nav button {
+    background: #555;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    margin: 0 0.25rem;
+    cursor: pointer;
+    border-radius: 4px;
 }
-
+nav button:hover {
+    background: #777;
+}
+main {
+    padding: 1rem;
+    max-width: 1200px;
+    margin: auto;
+}
 .page {
     display: none;
 }
-
 .page.active {
     display: block;
 }
-
-h1, h2 {
-    color: #333;
-    margin-bottom: 16px;
-    text-align: center;
-}
-
-.date-info {
-    text-align: center;
-    margin-bottom: 20px;
-    color: #666;
-}
-
-/* Dashboard Cards */
-.dashboard-cards {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 10px;
-    margin-bottom: 20px;
-}
-
-.info-card {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    padding: 15px 10px;
-    border-radius: 10px;
-    text-align: center;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-}
-
-.info-card .card-label {
-    font-size: 12px;
-    opacity: 0.9;
-    margin-bottom: 5px;
-}
-
-.info-card .card-value {
-    font-size: 24px;
-    font-weight: bold;
-}
-
-/* Menu Grid baru */
-.menu-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    margin-top: 20px;
-}
-
-.menu-btn {
-    background: #4a90e2;
-    color: white;
-    border: none;
-    padding: 16px;
-    border-radius: 8px;
-    font-size: 16px;
-    font-weight: bold;
-    cursor: pointer;
-    transition: background 0.2s;
-}
-
-.menu-btn:hover {
-    background: #357ab8;
-}
-
-.date-picker-container {
+.summary {
     display: flex;
-    gap: 8px;
-    align-items: center;
-    margin-bottom: 20px;
-    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 2rem;
 }
-
-.date-picker {
-    padding: 8px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    font-size: 14px;
+.card {
+    background: white;
+    padding: 1rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    flex: 1;
+    text-align: center;
 }
-
-.btn-ganti-tanggal, .btn-load-tanggal, .back-btn {
-    background: #6c757d;
-    color: white;
-    border: none;
-    padding: 8px 12px;
-    border-radius: 4px;
+.nav-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+}
+.nav-buttons button {
+    padding: 1rem 2rem;
+    font-size: 1.2rem;
     cursor: pointer;
-    font-size: 14px;
 }
-
-.back-btn {
-    margin-top: 20px;
-    width: 100%;
-    padding: 12px;
+form {
+    background: white;
+    padding: 1rem;
+    border-radius: 8px;
+    max-width: 600px;
+    margin: auto;
 }
-
-.form-group {
-    margin-bottom: 12px;
-}
-
-.form-group label {
+form label {
     display: block;
-    margin-bottom: 4px;
-    font-weight: 600;
+    margin: 0.5rem 0;
 }
-
-.form-group input, .form-group select {
+form input, form select {
     width: 100%;
-    padding: 10px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
+    padding: 0.5rem;
+    margin-top: 0.25rem;
 }
-
-.btn {
-    background: #28a745;
-    color: white;
-    border: none;
-    padding: 12px;
+.table-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+    gap: 0.5rem;
+    margin: 1rem 0;
+}
+.table-item {
+    background: #e0e0e0;
+    text-align: center;
+    padding: 0.5rem;
     border-radius: 4px;
-    width: 100%;
-    font-size: 16px;
     cursor: pointer;
-    margin-top: 10px;
 }
-
-.btn-secondary {
-    background: #ffc107;
-    color: #333;
+.table-item.available {
+    background: #90ee90;
 }
-
+.table-item.unavailable {
+    background: #a9a9a9;
+    opacity: 0.5;
+    pointer-events: none;
+}
+.table-item.selected {
+    outline: 3px solid #2196F3;
+}
+.filter-bar {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+}
 table {
     width: 100%;
     border-collapse: collapse;
-    margin-top: 12px;
-    font-size: 14px;
+    background: white;
 }
-
 th, td {
     border: 1px solid #ddd;
-    padding: 8px;
+    padding: 0.5rem;
     text-align: left;
 }
-
 th {
     background: #f2f2f2;
     cursor: pointer;
 }
-
 .card-view {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1rem;
 }
-
-.card-item {
-    background: #f9f9f9;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    padding: 12px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-}
-
-.card-item div {
-    margin-bottom: 4px;
-}
-
-.list-controls {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 12px;
-    flex-wrap: wrap;
-}
-
-.list-controls button, .list-controls select {
-    padding: 8px;
-    border-radius: 4px;
-    border: 1px solid #ccc;
+.res-card {
     background: white;
-}
-
-/* Grid Meja - WARNA SEDERHANA */
-.meja-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-top: 12px;
-}
-
-.meja-area {
-    width: 100%;
-    font-weight: bold;
-    margin-top: 16px;
-    margin-bottom: 8px;
-    background: #e9ecef;
-    padding: 8px;
-    border-radius: 4px;
-}
-
-.meja-item {
-    width: 50px;
-    height: 50px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    padding: 1rem;
     border-radius: 8px;
-    font-weight: bold;
-    cursor: pointer;
-    transition: transform 0.2s;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
-
-.meja-item:hover {
-    transform: scale(1.1);
-}
-
-/* WARNA SEDERHANA: Hijau untuk available, Abu-abu gelap untuk terisi */
-.meja-item.kosong {
-    background: #28a745;
-    color: white;
-}
-
-.meja-item.terisi {
-    background: #495057;
-    color: white;
-}
-
-/* Grid Meja untuk Pilih Meja */
-.meja-pilih-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin: 15px 0;
-    max-height: 300px;
-    overflow-y: auto;
-    padding: 10px;
-    background: #f8f9fa;
-    border-radius: 8px;
-}
-
-.meja-pilih-item {
-    width: 45px;
-    height: 45px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #28a745;
-    color: white;
-    border-radius: 6px;
-    font-weight: bold;
-    cursor: pointer;
-    transition: all 0.2s;
-    border: 2px solid transparent;
-}
-
-.meja-pilih-item.selected {
-    background: #007bff;
-    border-color: #0056b3;
-    transform: scale(1.05);
-}
-
-.meja-pilih-item.tersedia {
-    background: #28a745;
-}
-
-.meja-pilih-item.tersedia:hover {
-    background: #218838;
-}
-
-.meja-pilih-item:active {
-    transform: scale(0.95);
-}
-
-/* Modal */
-.modal {
-    position: fixed;
-    top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0,0,0,0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-}
-
-.modal-content {
-    background: white;
-    padding: 20px;
-    border-radius: 12px;
-    width: 90%;
-    max-width: 400px;
-    max-height: 80vh;
-    overflow-y: auto;
-}
-
-#daftar-meja .meja-item-edit {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-    margin-bottom: 8px;
-    padding: 8px;
-    background: #f8f9fa;
-    border-radius: 4px;
-}
-
-#daftar-meja select {
-    padding: 4px;
-    border-radius: 4px;
-    border: 1px solid #ccc;
-}
-
-.hidden {
-    display: none;
-}
-
-/* Detail Reservasi Modal */
-#detail-reservasi {
-    margin: 15px 0;
-    padding: 15px;
-    background: #f8f9fa;
-    border-radius: 8px;
-}
-
-#detail-reservasi p {
-    margin: 8px 0;
-}
-
-#edit-detail {
-    background: #ffc107;
-    color: #333;
-    border: none;
-    padding: 10px;
-    border-radius: 4px;
-    width: 100%;
-    margin-bottom: 8px;
-    cursor: pointer;
-}
-
-#tutup-detail {
-    background: #6c757d;
-    color: white;
-    border: none;
-    padding: 10px;
-    border-radius: 4px;
-    width: 100%;
-    cursor: pointer;
-}
-
-/* Tambahan CSS */
-.required {
-    color: #dc3545;
-    margin-left: 3px;
-}
-
-#form-reservasi-langsung {
-    background: #f8f9fa;
-    padding: 20px;
-    border-radius: 8px;
-    margin-bottom: 20px;
-}
-
-#form-reservasi-langsung .form-group {
-    margin-bottom: 15px;
-}
-
-#form-reservasi-langsung label {
-    font-weight: 600;
-    color: #333;
-}
-
-#form-reservasi-langsung input[type="checkbox"] {
-    margin-right: 8px;
-    transform: scale(1.2);
-}
-
-.checkbox-group {
-    margin: 15px 0;
-}
-
-.checkbox-label {
-    display: flex;
-    align-items: center;
-    cursor: pointer;
-    font-weight: normal !important;
-}
-
-.checkbox-label input[type="checkbox"] {
-    width: 18px;
-    height: 18px;
-    margin-right: 10px;
-    cursor: pointer;
-}
-
-/* Status badge colors */
-.status-badge {
+.badge {
     display: inline-block;
-    padding: 4px 8px;
+    padding: 0.2rem 0.5rem;
     border-radius: 4px;
-    font-size: 12px;
-    font-weight: bold;
-}
-
-.status-lengkap {
-    background: #28a745;
     color: white;
+    font-size: 0.8rem;
 }
-
-.status-belum-ada-meja {
-    background: #dc3545;
-    color: white;
+.badge.lengkap { background: #4CAF50; }
+.badge.belum-meja { background: #FF9800; }
+.badge.belum-dp { background: #F44336; }
+.badge.belum-meja-dp { background: #9C27B0; }
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.4);
 }
-
-.status-belum-ada-dp {
-    background: #ffc107;
-    color: #333;
+.modal-content {
+    background-color: white;
+    margin: 10% auto;
+    padding: 1rem;
+    border-radius: 8px;
+    width: 80%;
+    max-width: 500px;
 }
-
-.status-belum-ada-meja-dp {
-    background: #6c757d;
-    color: white;
-}
-
-/* Tombol Aksi tanpa emoji */
-.action-btn {
-    padding: 5px 10px;
-    margin: 0 3px;
-    border: none;
-    border-radius: 4px;
+.close {
+    float: right;
+    font-size: 1.5rem;
     cursor: pointer;
-    font-size: 12px;
 }
-
-.edit-btn {
-    background: #ffc107;
-    color: #333;
-}
-
-.hapus-btn {
-    background: #dc3545;
-    color: white;
+#tableList .table-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.5rem;
+    background: white;
+    margin-bottom: 0.5rem;
+    border-radius: 4px;
 }
