@@ -7,11 +7,14 @@
     <!-- Firebase SDK (gunakan compat untuk kemudahan) -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-    <!-- CSS akan diisi di part 2 -->
+    <!-- CSS -->
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div id="app">
+        <!-- Judul dengan margin lega -->
+        <h1 class="app-title">Reservasi Bukber</h1>
+
         <!-- Navigasi utama -->
         <nav class="navbar">
             <button class="nav-btn" data-page="dashboard">Dashboard</button>
@@ -24,7 +27,7 @@
         <!-- Konten halaman akan diisi secara dinamis -->
         <main id="content"></main>
 
-        <!-- Modal umum (untuk konfirmasi, atur kolom, dll) -->
+        <!-- Modal umum -->
         <div id="modal" class="modal hidden">
             <div class="modal-content">
                 <span class="close-modal">&times;</span>
@@ -36,7 +39,7 @@
         <div id="notification" class="notification hidden"></div>
     </div>
 
-    <!-- JavaScript akan diisi di part 3 -->
+    <!-- JavaScript -->
     <script src="script.js"></script>
 </body>
 </html>
