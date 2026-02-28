@@ -2,178 +2,139 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>Reservasi Restoran - Internal</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Reservasi Restoran</title>
     <link rel="stylesheet" href="style.css">
     <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
-    <div id="app">
-        <!-- Dashboard -->
-        <div id="dashboard-page" class="page active">
-            <h1>List Reservasi</h1>
-            <div class="date-info">Hari ini: <span id="current-date"></span></div>
-            
-            <!-- Card Info Dashboard -->
-            <div class="dashboard-cards">
-                <div class="info-card">
-                    <div class="card-label">Reservasi Hari Ini</div>
-                    <div class="card-value" id="dashboard-reservasi-count">0</div>
-                </div>
-                <div class="info-card">
-                    <div class="card-label">Meja Available</div>
-                    <div class="card-value" id="dashboard-meja-available">0</div>
-                </div>
-                <div class="info-card">
-                    <div class="card-label">Belum Lengkap</div>
-                    <div class="card-value" id="dashboard-belum-lengkap">0</div>
-                </div>
+    <header>
+        <h1>Sistem Reservasi Restoran</h1>
+        <nav>
+            <button class="nav-btn" data-page="dashboard">Dashboard</button>
+            <button class="nav-btn" data-page="newReservation">Buat Reservasi</button>
+            <button class="nav-btn" data-page="listReservation">List Reservasi</button>
+            <button class="nav-btn" data-page="checkTable">Cek Meja Kosong</button>
+            <button class="nav-btn" data-page="manageTable">Atur Meja</button>
+        </nav>
+    </header>
+    <main id="app">
+        <!-- Halaman Dashboard -->
+        <section id="dashboard" class="page active">
+            <h2>Dashboard</h2>
+            <div class="summary">
+                <div class="card">Reservasi Hari Ini: <span id="todayResCount">0</span></div>
+                <div class="card">Meja Tersedia: <span id="availableTableCount">0</span></div>
+                <div class="card">Belum Lengkap: <span id="incompleteCount">0</span></div>
             </div>
-
-            <div class="menu-grid">
-                <!-- Baris 1 -->
-                <button class="menu-btn" data-action="list">📋 List Reservasi</button>
-                <button class="menu-btn" data-action="buat">➕ Buat Reservasi Baru</button>
-                
-                <!-- Baris 2 -->
-                <button class="menu-btn" data-action="cek">🔍 Cek Meja Kosong</button>
-                <button class="menu-btn" data-action="atur-meja">⚙️ Atur Meja</button>
+            <div class="nav-buttons">
+                <button onclick="showPage('newReservation')">Buat Reservasi Baru</button>
+                <button onclick="showPage('listReservation')">List Reservasi</button>
+                <button onclick="showPage('checkTable')">Cek Meja Kosong</button>
+                <button onclick="showPage('manageTable')">Atur Meja</button>
             </div>
-        </div>
+        </section>
 
-        <!-- Halaman Buat Reservasi (A) - 1 Halaman Langsung -->
-        <div id="buat-page" class="page">
-            <h2>➕ Buat Reservasi Baru</h2>
-            <form id="form-reservasi-langsung">
-                <div class="form-group">
-                    <label>Tanggal Reservasi <span class="required">*</span></label>
-                    <input type="date" id="buat-tanggal" class="date-picker" required>
-                </div>
-                
-                <div class="form-group">
-                    <label>Nama Tamu <span class="required">*</span></label>
-                    <input type="text" id="nama" required>
-                </div>
-                
-                <div class="form-group">
-                    <label>Jumlah Tamu <span class="required">*</span></label>
-                    <input type="number" id="jumlah" min="1" required>
-                </div>
-                
-                <div class="form-group">
-                    <label>Nomor HP <span class="required">*</span></label>
-                    <input type="tel" id="hp" required>
-                </div>
-                
-                <div class="form-group">
-                    <label>Preferensi Area</label>
-                    <select id="area">
+        <!-- Halaman Buat Reservasi Baru -->
+        <section id="newReservation" class="page">
+            <h2>Buat Reservasi Baru</h2>
+            <form id="reservationForm">
+                <label>Tanggal <input type="date" id="resDate" required></label>
+                <label>Nama Tamu <input type="text" id="guestName" required></label>
+                <label>Jumlah Tamu <input type="number" id="guestCount" required min="1"></label>
+                <label>Nomor HP <input type="tel" id="guestPhone" required></label>
+                <label>Preferensi Area 
+                    <select id="areaPref">
+                        <option value="Non Smoking">Non Smoking</option>
                         <option value="Smoking">Smoking</option>
-                        <option value="Non Smoking" selected>Non Smoking</option>
                     </select>
+                </label>
+                <label><input type="checkbox" id="hasTable"> Sudah Ada Nomor Meja?</label>
+                <div id="tableGridContainer" style="display:none;">
+                    <p>Pilih meja (tersedia ditandai hijau):</p>
+                    <div id="tableGrid" class="table-grid"></div>
                 </div>
-
-                <div class="form-group checkbox-group">
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="punya-meja"> Sudah Ada Nomor Meja?
-                    </label>
-                </div>
-
-                <div id="pilih-meja-container" style="display: none; margin-bottom: 15px;">
-                    <label>Pilih Meja (bisa lebih dari satu):</label>
-                    <div id="meja-grid-container" class="meja-pilih-grid"></div>
-                </div>
-
-                <div class="form-group checkbox-group">
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="punya-order"> Sudah Ada Orderan?
-                    </label>
-                </div>
-
-                <div class="form-group checkbox-group">
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="punya-dp"> Ada Pembayaran DP?
-                    </label>
-                </div>
-
-                <div id="dp-container" style="display: none;">
-                    <div class="form-group">
-                        <label>Jenis Pembayaran</label>
-                        <select id="jenis-pembayaran">
+                <label><input type="checkbox" id="hasOrder"> Sudah Ada Orderan?</label>
+                <label><input type="checkbox" id="hasDP"> Ada Pembayaran DP?</label>
+                <div id="dpFields" style="display:none;">
+                    <label>Jenis Pembayaran 
+                        <select id="paymentType">
                             <option value="Transfer">Transfer</option>
                             <option value="Cash">Cash</option>
                         </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Nominal DP</label>
-                        <input type="text" id="nominal-dp" min="0" placeholder="Contoh: 10,000">
-                    </div>
+                    </label>
+                    <label>Nominal DP <input type="text" id="dpAmount" placeholder="Rp"></label>
                 </div>
-
-                <button type="button" class="btn" id="simpan-reservasi">Simpan Reservasi</button>
+                <button type="submit">Simpan Reservasi</button>
             </form>
-            <button class="back-btn">← Kembali ke Dashboard</button>
-        </div>
+        </section>
 
-        <!-- Halaman List Reservasi (C) -->
-        <div id="list-page" class="page">
-            <h2>📋 List Reservasi</h2>
-            <div class="date-picker-container">
-                <label>Pilih Tanggal: <input type="date" id="list-tanggal" class="date-picker"></label>
-                <button class="btn-load-tanggal">Muat</button>
+        <!-- Halaman List Reservasi -->
+        <section id="listReservation" class="page">
+            <h2>Daftar Reservasi</h2>
+            <div class="filter-bar">
+                <label>Tanggal <input type="date" id="listDate"></label>
+                <button id="loadList">Muat</button>
+                <label>Tampilan 
+                    <select id="viewMode">
+                        <option value="table">Tabel</option>
+                        <option value="card">Card</option>
+                    </select>
+                </label>
+                <label>Urutkan 
+                    <select id="sortBy">
+                        <option value="urutanDP">Urutan DP</option>
+                        <option value="nomorMeja">Nomor Meja</option>
+                        <option value="statusKelengkapan">Status Kelengkapan</option>
+                    </select>
+                </label>
+                <button id="configureColumns">Atur Kolom</button>
             </div>
-            <div class="list-controls">
-                <button id="toggle-view">📱 Tampilan Card</button>
-                <button id="atur-kolom">⚙️ Atur Kolom</button>
-                <select id="sort-by">
-                    <option value="urutanDP">Urutan DP</option>
-                    <option value="nomorMeja">Nomor Meja</option>
-                    <option value="kelengkapan">Status Kelengkapan</option>
-                </select>
-            </div>
-            <div id="list-container"></div>
-            <button class="back-btn">← Kembali ke Dashboard</button>
-        </div>
+            <div id="listContainer"></div>
+        </section>
 
-        <!-- Halaman Cek Meja Kosong (D) -->
-        <div id="cek-page" class="page">
-            <h2>🔍 Cek Meja Kosong</h2>
-            <div class="date-picker-container">
-                <label>Pilih Tanggal: <input type="date" id="cek-tanggal" class="date-picker"></label>
-                <button class="btn-load-tanggal">Muat</button>
-            </div>
-            <div id="meja-kosong-container"></div>
-            <button class="back-btn">← Kembali ke Dashboard</button>
-        </div>
+        <!-- Halaman Cek Meja Kosong -->
+        <section id="checkTable" class="page">
+            <h2>Cek Meja Kosong</h2>
+            <label>Tanggal <input type="date" id="checkDate"></label>
+            <button id="loadTables">Tampilkan</button>
+            <div id="tableAreaGrid"></div>
+        </section>
 
         <!-- Halaman Atur Meja -->
-        <div id="atur-meja-page" class="page">
-            <h2>⚙️ Atur Meja</h2>
-            <button id="tambah-meja">➕ Tambah Meja Baru</button>
-            <div id="daftar-meja"></div>
-            <button class="back-btn">← Kembali ke Dashboard</button>
-        </div>
+        <section id="manageTable" class="page">
+            <h2>Atur Meja</h2>
+            <button id="addNewTable">Tambah Meja Baru</button>
+            <div id="tableList"></div>
+        </section>
+    </main>
 
-        <!-- Modal untuk Atur Kolom -->
-        <div id="modal-kolom" class="modal" style="display: none;">
-            <div class="modal-content">
-                <h3>Atur Kolom yang Ditampilkan</h3>
-                <div id="kolom-list"></div>
-                <button id="simpan-kolom">Simpan</button>
-                <button id="tutup-modal">Tutup</button>
-            </div>
+    <!-- Modal untuk konfigurasi kolom -->
+    <div id="columnModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>Atur Kolom</h3>
+            <div id="columnList"></div>
+            <button id="saveColumnOrder">Simpan</button>
         </div>
+    </div>
 
-        <!-- Modal Detail Reservasi -->
-        <div id="modal-detail" class="modal" style="display: none;">
-            <div class="modal-content">
-                <h3>Detail Reservasi</h3>
-                <div id="detail-reservasi"></div>
-                <button id="edit-detail">✏️ Edit Reservasi</button>
-                <button id="tutup-detail">Tutup</button>
-            </div>
+    <!-- Modal untuk detail meja terisi -->
+    <div id="tableDetailModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <div id="tableDetailContent"></div>
+        </div>
+    </div>
+
+    <!-- Modal konfirmasi hapus -->
+    <div id="confirmModal" class="modal">
+        <div class="modal-content">
+            <p>Hapus data ini?</p>
+            <button id="confirmYes">Ya</button>
+            <button id="confirmNo">Batal</button>
         </div>
     </div>
 
