@@ -2,142 +2,41 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
     <title>Sistem Reservasi Restoran</title>
+    <!-- Firebase SDK (gunakan compat untuk kemudahan) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <!-- CSS akan diisi di part 2 -->
     <link rel="stylesheet" href="style.css">
-    <!-- Firebase SDK (compat) -->
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
-    <header>
-        <h1>Sistem Reservasi Restoran</h1>
-        <nav>
+    <div id="app">
+        <!-- Navigasi utama -->
+        <nav class="navbar">
             <button class="nav-btn" data-page="dashboard">Dashboard</button>
-            <button class="nav-btn" data-page="newReservation">Buat Reservasi</button>
-            <button class="nav-btn" data-page="listReservation">List Reservasi</button>
-            <button class="nav-btn" data-page="checkTable">Cek Meja Kosong</button>
-            <button class="nav-btn" data-page="manageTable">Atur Meja</button>
+            <button class="nav-btn" data-page="reservasi-baru">Reservasi Baru</button>
+            <button class="nav-btn" data-page="list-reservasi">List Reservasi</button>
+            <button class="nav-btn" data-page="cek-meja">Cek Meja</button>
+            <button class="nav-btn" data-page="atur-meja">Atur Meja</button>
         </nav>
-    </header>
-    <main id="app">
-        <!-- Halaman Dashboard -->
-        <section id="dashboard" class="page active">
-            <h2>Dashboard</h2>
-            <div class="summary">
-                <div class="card">Reservasi Hari Ini: <span id="todayResCount">0</span></div>
-                <div class="card">Meja Tersedia: <span id="availableTableCount">0</span></div>
-                <div class="card">Belum Lengkap: <span id="incompleteCount">0</span></div>
+
+        <!-- Konten halaman akan diisi secara dinamis -->
+        <main id="content"></main>
+
+        <!-- Modal umum (untuk konfirmasi, atur kolom, dll) -->
+        <div id="modal" class="modal hidden">
+            <div class="modal-content">
+                <span class="close-modal">&times;</span>
+                <div id="modal-body"></div>
             </div>
-            <div class="nav-buttons">
-                <button onclick="showPage('newReservation')">Buat Reservasi Baru</button>
-                <button onclick="showPage('listReservation')">List Reservasi</button>
-                <button onclick="showPage('checkTable')">Cek Meja Kosong</button>
-                <button onclick="showPage('manageTable')">Atur Meja</button>
-            </div>
-        </section>
-
-        <!-- Halaman Buat Reservasi Baru -->
-        <section id="newReservation" class="page">
-            <h2>Buat Reservasi Baru</h2>
-            <form id="reservationForm">
-                <label>Tanggal <input type="date" id="resDate" required></label>
-                <label>Nama Tamu <input type="text" id="guestName" required></label>
-                <label>Jumlah Tamu <input type="number" id="guestCount" required min="1"></label>
-                <label>Nomor HP <input type="tel" id="guestPhone" required></label>
-                <label>Preferensi Area 
-                    <select id="areaPref">
-                        <option value="Non Smoking">Non Smoking</option>
-                        <option value="Smoking">Smoking</option>
-                    </select>
-                </label>
-                <label><input type="checkbox" id="hasTable"> Sudah Ada Nomor Meja?</label>
-                <div id="tableGridContainer" style="display:none;">
-                    <p>Pilih meja (tersedia ditandai hijau):</p>
-                    <div id="tableGrid" class="table-grid"></div>
-                </div>
-                <label><input type="checkbox" id="hasOrder"> Sudah Ada Orderan?</label>
-                <label><input type="checkbox" id="hasDP"> Ada Pembayaran DP?</label>
-                <div id="dpFields" style="display:none;">
-                    <label>Jenis Pembayaran 
-                        <select id="paymentType">
-                            <option value="Transfer">Transfer</option>
-                            <option value="Cash">Cash</option>
-                        </select>
-                    </label>
-                    <label>Nominal DP <input type="text" id="dpAmount" placeholder="Rp"></label>
-                </div>
-                <button type="submit">Simpan Reservasi</button>
-            </form>
-        </section>
-
-        <!-- Halaman List Reservasi -->
-        <section id="listReservation" class="page">
-            <h2>Daftar Reservasi</h2>
-            <div class="filter-bar">
-                <label>Tanggal <input type="date" id="listDate"></label>
-                <button id="loadList">Muat</button>
-                <label>Tampilan 
-                    <select id="viewMode">
-                        <option value="table">Tabel</option>
-                        <option value="card">Card</option>
-                    </select>
-                </label>
-                <label>Urutkan 
-                    <select id="sortBy">
-                        <option value="urutanDP">Urutan DP</option>
-                        <option value="nomorMeja">Nomor Meja</option>
-                        <option value="statusKelengkapan">Status Kelengkapan</option>
-                    </select>
-                </label>
-                <button id="configureColumns">Atur Kolom</button>
-            </div>
-            <div id="listContainer"></div>
-        </section>
-
-        <!-- Halaman Cek Meja Kosong -->
-        <section id="checkTable" class="page">
-            <h2>Cek Meja Kosong</h2>
-            <label>Tanggal <input type="date" id="checkDate"></label>
-            <button id="loadTables">Tampilkan</button>
-            <div id="tableAreaGrid"></div>
-        </section>
-
-        <!-- Halaman Atur Meja -->
-        <section id="manageTable" class="page">
-            <h2>Atur Meja</h2>
-            <button id="addNewTable">Tambah Meja Baru</button>
-            <div id="tableList"></div>
-        </section>
-    </main>
-
-    <!-- Modal untuk konfigurasi kolom -->
-    <div id="columnModal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h3>Atur Kolom</h3>
-            <div id="columnList"></div>
-            <button id="saveColumnOrder">Simpan</button>
         </div>
+
+        <!-- Notifikasi sementara -->
+        <div id="notification" class="notification hidden"></div>
     </div>
 
-    <!-- Modal untuk detail meja terisi -->
-    <div id="tableDetailModal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <div id="tableDetailContent"></div>
-        </div>
-    </div>
-
-    <!-- Modal konfirmasi hapus -->
-    <div id="confirmModal" class="modal">
-        <div class="modal-content">
-            <p>Hapus data ini?</p>
-            <button id="confirmYes">Ya</button>
-            <button id="confirmNo">Batal</button>
-        </div>
-    </div>
-
+    <!-- JavaScript akan diisi di part 3 -->
     <script src="script.js"></script>
 </body>
 </html>
