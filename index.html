@@ -4,39 +4,62 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
     <title>Sistem Reservasi Restoran</title>
-    <!-- Firebase SDK (gunakan compat untuk kemudahan) -->
+    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <!-- CSS -->
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div id="app">
-        <!-- Judul dengan margin lega -->
-        <h1 class="app-title">Reservasi Bukber</h1>
-
-        <!-- Navigasi utama -->
-        <nav class="navbar">
-            <button class="nav-btn" data-page="dashboard">Dashboard</button>
-            <button class="nav-btn" data-page="reservasi-baru">Reservasi Baru</button>
-            <button class="nav-btn" data-page="list-reservasi">List Reservasi</button>
-            <button class="nav-btn" data-page="cek-meja">Cek Meja</button>
-            <button class="nav-btn" data-page="atur-meja">Atur Meja</button>
-        </nav>
-
-        <!-- Konten halaman akan diisi secara dinamis -->
-        <main id="content"></main>
-
-        <!-- Modal umum -->
-        <div id="modal" class="modal hidden">
-            <div class="modal-content">
-                <span class="close-modal">&times;</span>
-                <div id="modal-body"></div>
+        <!-- Halaman Login -->
+        <div id="login-page" class="page">
+            <div class="login-container">
+                <h2>Login Staf Reservasi</h2>
+                <form id="login-form">
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="email" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Login</button>
+                    <div id="login-error" style="color:red; margin-top:10px;"></div>
+                </form>
             </div>
         </div>
 
-        <!-- Notifikasi sementara -->
-        <div id="notification" class="notification hidden"></div>
+        <!-- Konten Aplikasi (hanya tampil setelah login) -->
+        <div id="app-content" style="display:none;">
+            <h1 class="app-title">Reservasi Bukber</h1>
+
+            <!-- Navigasi + Logout -->
+            <nav class="navbar">
+                <button class="nav-btn" data-page="dashboard">Dashboard</button>
+                <button class="nav-btn" data-page="reservasi-baru">Reservasi Baru</button>
+                <button class="nav-btn" data-page="list-reservasi">List Reservasi</button>
+                <button class="nav-btn" data-page="cek-meja">Cek Meja</button>
+                <button class="nav-btn" data-page="atur-meja">Atur Meja</button>
+                <button id="logout-btn" class="btn btn-sm btn-danger" style="margin-left:auto;">Logout</button>
+            </nav>
+
+            <!-- Konten dinamis -->
+            <main id="content"></main>
+
+            <!-- Modal -->
+            <div id="modal" class="modal hidden">
+                <div class="modal-content">
+                    <span class="close-modal">&times;</span>
+                    <div id="modal-body"></div>
+                </div>
+            </div>
+
+            <!-- Notifikasi -->
+            <div id="notification" class="notification hidden"></div>
+        </div>
     </div>
 
     <!-- JavaScript -->
