@@ -11,6 +11,7 @@ const firebaseConfig = {
 // Inisialisasi Firebase
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
+const auth = firebase.auth();
 
 // ==================== GLOBAL VARIABLES ====================
 let currentPage = 'dashboard';
@@ -143,15 +144,11 @@ async function saveReservation(resData) {
         // Hitung status kelengkapan
         resData.statusKelengkapan = getStatusKelengkapan(resData);
         
-        // Jika DP dicentang dan nominal > 0, pastikan dpTimestamp ada (kecuali jika sedang hapus DP)
         if (resData.dpCheck && resData.dpNominal > 0) {
             if (!resData.dpTimestamp) {
-                // Jika baru centang atau nominal diisi, set timestamp baru
                 resData.dpTimestamp = firebase.firestore.FieldValue.serverTimestamp();
             }
-            // Jika sudah ada dpTimestamp, biarkan (tidak berubah)
         } else {
-            // Jika DP tidak dicentang atau nominal 0, hapus semua data DP
             resData.dpCheck = false;
             resData.dpNominal = 0;
             resData.dpJenis = '';
@@ -197,9 +194,7 @@ async function deleteReservation(resId, tanggal) {
     }
 }
 
-// Hitung urutan DP berdasarkan dpTimestamp
 function calculateUrutanDP() {
-    // Ambil reservasi yang memiliki DP (dpCheck true, dpNominal > 0, dan dpTimestamp ada)
     const withDP = reservations
         .filter(r => r.dpCheck && r.dpNominal > 0 && r.dpTimestamp)
         .sort((a, b) => {
@@ -208,12 +203,10 @@ function calculateUrutanDP() {
             return timeA - timeB;
         });
     
-    // Beri nomor urut mulai dari 1
     withDP.forEach((r, index) => {
         r.urutanDP = index + 1;
     });
     
-    // Yang tidak memiliki DP, hapus properti urutanDP agar tidak tampil 0
     reservations.forEach(r => {
         if (!r.dpCheck || r.dpNominal <= 0 || !r.dpTimestamp) {
             delete r.urutanDP;
@@ -230,7 +223,7 @@ function getStatusKelengkapan(r) {
     return 'Belum ada Meja & DP';
 }
 
-// Fungsi global untuk menampilkan modal detail reservasi
+// Modal detail
 function showReservationDetailModal(r) {
     let dpInfo = 'Tidak ada';
     let dpActions = '';
@@ -302,7 +295,7 @@ async function renderPage(page) {
     let html = '';
     
     if (page === 'dashboard') {
-        html = await renderDashboard(); // async
+        html = await renderDashboard();
     } else if (page === 'reservasi-baru') {
         html = renderReservasiBaru();
     } else if (page === 'list-reservasi') {
@@ -319,9 +312,8 @@ async function renderPage(page) {
         btn.classList.toggle('active', btn.dataset.page === page);
     });
     
-    // Inisialisasi halaman
     if (page === 'dashboard') {
-        // Dashboard sudah di-render, tidak perlu inisialisasi lagi
+        // sudah di-render
     } else if (page === 'reservasi-baru') {
         initReservasiBaru();
     } else if (page === 'list-reservasi') {
@@ -333,11 +325,11 @@ async function renderPage(page) {
     }
 }
 
-// Dashboard (async)
+// Dashboard
 async function renderDashboard() {
     const today = new Date().toISOString().split('T')[0];
-    await loadReservationsByDate(today); // muat data hari ini
-    const todayRes = reservations; // sekarang sudah terisi
+    await loadReservationsByDate(today);
+    const todayRes = reservations;
     const totalMeja = tables.length;
     
     const mejaTerpakai = new Set();
@@ -654,7 +646,6 @@ async function initListReservasi() {
         const container = document.getElementById('listContainer');
         container.innerHTML = renderTable();
         
-        // Semua baris bisa diklik, tanpa pengecualian
         document.querySelectorAll('#listContainer tbody tr').forEach(row => {
             row.addEventListener('click', (e) => {
                 if (e.target.tagName === 'BUTTON') return;
@@ -1003,19 +994,50 @@ window.hapusReservasi = async function(id) {
     }
 };
 
-// ==================== INISIALISASI APLIKASI ====================
-document.addEventListener('DOMContentLoaded', async () => {
-    await loadTablesFromFirebase();
-    
-    document.querySelectorAll('.nav-btn').forEach(btn => {
-        btn.addEventListener('click', async () => {
-            await renderPage(btn.dataset.page);
+// ==================== LOGIN & AUTENTIKASI ====================
+document.getElementById('login-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+
+    auth.signInWithEmailAndPassword(email, password)
+        .then(() => {
+            console.log('Login sukses');
+            // startApp akan dipanggil oleh onAuthStateChanged
+        })
+        .catch(error => {
+            document.getElementById('login-error').textContent = error.message;
         });
-    });
-    
-    document.querySelector('.close-modal').addEventListener('click', () => {
-        document.getElementById('modal').classList.add('hidden');
-    });
-    
-    await renderPage('dashboard');
 });
+
+// Logout
+document.getElementById('logout-btn').addEventListener('click', () => {
+    auth.signOut().then(() => {
+        // Tampilkan login, sembunyikan app
+        document.getElementById('login-page').style.display = 'block';
+        document.getElementById('app-content').style.display = 'none';
+    });
+});
+
+// Pantau status autentikasi
+auth.onAuthStateChanged(user => {
+    if (user) {
+        // User sudah login
+        document.getElementById('login-page').style.display = 'none';
+        document.getElementById('app-content').style.display = 'block';
+        startApp();
+    } else {
+        // User belum login
+        document.getElementById('login-page').style.display = 'block';
+        document.getElementById('app-content').style.display = 'none';
+    }
+});
+
+// ==================== INISIALISASI APLIKASI ====================
+function startApp() {
+    // Muat data meja
+    loadTablesFromFirebase().then(() => {
+        // Navigasi (sudah di-set di HTML, tapi kita perlu render halaman pertama)
+        renderPage('dashboard');
+    });
+                    }
