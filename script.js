@@ -129,7 +129,6 @@ async function loadReservationsByDate(date) {
             .where('tanggal', '==', date)
             .get();
         reservations = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        // Hitung urutan DP berdasarkan dpTimestamp
         calculateUrutanDP();
         saveToLocalStorage(`reservations_${date}`, reservations);
     } catch (error) {
@@ -141,7 +140,6 @@ async function loadReservationsByDate(date) {
 
 async function saveReservation(resData) {
     try {
-        // Hitung status kelengkapan
         resData.statusKelengkapan = getStatusKelengkapan(resData);
         
         if (resData.dpCheck && resData.dpNominal > 0) {
@@ -223,7 +221,6 @@ function getStatusKelengkapan(r) {
     return 'Belum ada Meja & DP';
 }
 
-// Modal detail
 function showReservationDetailModal(r) {
     let dpInfo = 'Tidak ada';
     let dpActions = '';
@@ -587,7 +584,7 @@ async function initReservasiBaru() {
     });
 }
 
-// List Reservasi
+// List Reservasi (dengan event delegation)
 function renderListReservasi() {
     return `
         <div class="page">
@@ -646,26 +643,33 @@ async function initListReservasi() {
         const container = document.getElementById('listContainer');
         container.innerHTML = renderTable();
         
-        document.querySelectorAll('#listContainer tbody tr').forEach(row => {
-            row.addEventListener('click', (e) => {
-                if (e.target.tagName === 'BUTTON') return;
+        // Event delegation untuk klik pada container
+        container.addEventListener('click', (e) => {
+            const target = e.target;
+            
+            // Tombol edit
+            if (target.classList.contains('edit-reservasi')) {
+                e.stopPropagation();
+                const id = target.dataset.id;
+                editReservasi(id);
+                return;
+            }
+            
+            // Tombol hapus
+            if (target.classList.contains('hapus-reservasi')) {
+                e.stopPropagation();
+                const id = target.dataset.id;
+                hapusReservasi(id);
+                return;
+            }
+            
+            // Klik di baris (cari elemen tr terdekat)
+            const row = target.closest('tr[data-id]');
+            if (row) {
                 const id = row.dataset.id;
                 const r = reservations.find(r => r.id === id);
                 if (r) showReservationDetailModal(r);
-            });
-        });
-        
-        document.querySelectorAll('.edit-reservasi').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                editReservasi(btn.dataset.id);
-            });
-        });
-        document.querySelectorAll('.hapus-reservasi').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                hapusReservasi(btn.dataset.id);
-            });
+            }
         });
     }
     
@@ -990,7 +994,13 @@ window.editReservasi = function(id) {
 window.hapusReservasi = async function(id) {
     if (confirm('Hapus reservasi ini?')) {
         await deleteReservation(id, selectedDate);
-        renderPage('list-reservasi');
+        // Setelah hapus, render ulang list reservasi
+        if (currentPage === 'list-reservasi') {
+            renderPage('list-reservasi');
+        } else {
+            // Jika dari modal, kembali ke list
+            renderPage('list-reservasi');
+        }
     }
 };
 
@@ -1020,22 +1030,19 @@ document.getElementById('logout-btn').addEventListener('click', () => {
 // Pantau status autentikasi
 auth.onAuthStateChanged(user => {
     if (user) {
-        // User sudah login
         document.getElementById('login-page').style.display = 'none';
         document.getElementById('app-content').style.display = 'block';
         
-        // Pasang event listener untuk tombol navigasi (hanya sekali)
+        // Pasang event listener untuk tombol navigasi
         document.querySelectorAll('.nav-btn').forEach(btn => {
-            // Hapus listener lama jika ada (untuk menghindari multiple)
+            // Hapus listener lama jika ada (gunakan fungsi bernama atau referensi)
             btn.removeEventListener('click', window.navHandler);
-            // Buat handler baru
             window.navHandler = async () => {
                 await renderPage(btn.dataset.page);
             };
             btn.addEventListener('click', window.navHandler);
         });
 
-        // Mulai aplikasi
         startApp();
     } else {
         document.getElementById('login-page').style.display = 'block';
@@ -1048,4 +1055,4 @@ function startApp() {
     loadTablesFromFirebase().then(() => {
         renderPage('dashboard');
     });
-            }
+}
