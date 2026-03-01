@@ -216,7 +216,7 @@ function calculateUrutanDP() {
     // Yang tidak memiliki DP, hapus properti urutanDP agar tidak tampil 0
     reservations.forEach(r => {
         if (!r.dpCheck || r.dpNominal <= 0 || !r.dpTimestamp) {
-            delete r.urutanDP; // tidak punya urutan
+            delete r.urutanDP;
         }
     });
 }
@@ -230,7 +230,7 @@ function getStatusKelengkapan(r) {
     return 'Belum ada Meja & DP';
 }
 
-// Fungsi global untuk menampilkan modal detail reservasi (dipanggil dari berbagai tempat)
+// Fungsi global untuk menampilkan modal detail reservasi
 function showReservationDetailModal(r) {
     let dpInfo = 'Tidak ada';
     let dpActions = '';
@@ -271,13 +271,11 @@ function showReservationDetailModal(r) {
     `;
     modal.classList.remove('hidden');
     
-    // Tambah event listener untuk tombol hapus DP jika ada
     const hapusDPBtn = document.getElementById('hapusDPBtn');
     if (hapusDPBtn) {
         hapusDPBtn.addEventListener('click', async (e) => {
             e.stopPropagation();
             if (confirm('Hapus data DP? Urutan DP akan dihapus dan bisa diisi ulang dengan urutan baru.')) {
-                // Hapus data DP dari reservasi
                 r.dpCheck = false;
                 r.dpNominal = 0;
                 r.dpJenis = '';
@@ -285,7 +283,6 @@ function showReservationDetailModal(r) {
                 delete r.urutanDP;
                 await saveReservation(r);
                 modal.classList.add('hidden');
-                // Refresh tampilan jika perlu
                 if (currentPage === 'list-reservasi') {
                     renderPage('list-reservasi');
                 } else if (currentPage === 'cek-meja') {
@@ -296,8 +293,8 @@ function showReservationDetailModal(r) {
     }
 }
 
-// ==================== RENDER PAGE ====================
-function renderPage(page) {
+// ==================== RENDER PAGE (ASYNC) ====================
+async function renderPage(page) {
     currentPage = page;
     document.querySelectorAll('.page').forEach(el => el.remove());
     
@@ -305,7 +302,7 @@ function renderPage(page) {
     let html = '';
     
     if (page === 'dashboard') {
-        html = renderDashboard();
+        html = await renderDashboard(); // async
     } else if (page === 'reservasi-baru') {
         html = renderReservasiBaru();
     } else if (page === 'list-reservasi') {
@@ -322,17 +319,25 @@ function renderPage(page) {
         btn.classList.toggle('active', btn.dataset.page === page);
     });
     
-    if (page === 'dashboard') initDashboard();
-    else if (page === 'reservasi-baru') initReservasiBaru();
-    else if (page === 'list-reservasi') initListReservasi();
-    else if (page === 'cek-meja') initCekMeja();
-    else if (page === 'atur-meja') initAturMeja();
+    // Inisialisasi halaman
+    if (page === 'dashboard') {
+        // Dashboard sudah di-render, tidak perlu inisialisasi lagi
+    } else if (page === 'reservasi-baru') {
+        initReservasiBaru();
+    } else if (page === 'list-reservasi') {
+        initListReservasi();
+    } else if (page === 'cek-meja') {
+        initCekMeja();
+    } else if (page === 'atur-meja') {
+        initAturMeja();
+    }
 }
 
-// Dashboard
-function renderDashboard() {
+// Dashboard (async)
+async function renderDashboard() {
     const today = new Date().toISOString().split('T')[0];
-    const todayRes = reservations.filter(r => r.tanggal === today);
+    await loadReservationsByDate(today); // muat data hari ini
+    const todayRes = reservations; // sekarang sudah terisi
     const totalMeja = tables.length;
     
     const mejaTerpakai = new Set();
@@ -370,11 +375,8 @@ function renderDashboard() {
     `;
 }
 
-function initDashboard() {}
-
 // Reservasi Baru
 function renderReservasiBaru() {
-    // Set min tanggal ke hari ini
     const today = new Date().toISOString().split('T')[0];
     return `
         <div class="page">
@@ -652,6 +654,7 @@ async function initListReservasi() {
         const container = document.getElementById('listContainer');
         container.innerHTML = renderTable();
         
+        // Semua baris bisa diklik, tanpa pengecualian
         document.querySelectorAll('#listContainer tbody tr').forEach(row => {
             row.addEventListener('click', (e) => {
                 if (e.target.tagName === 'BUTTON') return;
@@ -1005,8 +1008,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadTablesFromFirebase();
     
     document.querySelectorAll('.nav-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            renderPage(btn.dataset.page);
+        btn.addEventListener('click', async () => {
+            await renderPage(btn.dataset.page);
         });
     });
     
@@ -1014,5 +1017,5 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('modal').classList.add('hidden');
     });
     
-    renderPage('dashboard');
+    await renderPage('dashboard');
 });
