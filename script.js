@@ -1003,7 +1003,6 @@ document.getElementById('login-form').addEventListener('submit', (e) => {
     auth.signInWithEmailAndPassword(email, password)
         .then(() => {
             console.log('Login sukses');
-            // startApp akan dipanggil oleh onAuthStateChanged
         })
         .catch(error => {
             document.getElementById('login-error').textContent = error.message;
@@ -1013,7 +1012,6 @@ document.getElementById('login-form').addEventListener('submit', (e) => {
 // Logout
 document.getElementById('logout-btn').addEventListener('click', () => {
     auth.signOut().then(() => {
-        // Tampilkan login, sembunyikan app
         document.getElementById('login-page').style.display = 'block';
         document.getElementById('app-content').style.display = 'none';
     });
@@ -1025,9 +1023,21 @@ auth.onAuthStateChanged(user => {
         // User sudah login
         document.getElementById('login-page').style.display = 'none';
         document.getElementById('app-content').style.display = 'block';
+        
+        // Pasang event listener untuk tombol navigasi (hanya sekali)
+        document.querySelectorAll('.nav-btn').forEach(btn => {
+            // Hapus listener lama jika ada (untuk menghindari multiple)
+            btn.removeEventListener('click', window.navHandler);
+            // Buat handler baru
+            window.navHandler = async () => {
+                await renderPage(btn.dataset.page);
+            };
+            btn.addEventListener('click', window.navHandler);
+        });
+
+        // Mulai aplikasi
         startApp();
     } else {
-        // User belum login
         document.getElementById('login-page').style.display = 'block';
         document.getElementById('app-content').style.display = 'none';
     }
@@ -1035,9 +1045,7 @@ auth.onAuthStateChanged(user => {
 
 // ==================== INISIALISASI APLIKASI ====================
 function startApp() {
-    // Muat data meja
     loadTablesFromFirebase().then(() => {
-        // Navigasi (sudah di-set di HTML, tapi kita perlu render halaman pertama)
         renderPage('dashboard');
     });
-                    }
+            }
