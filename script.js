@@ -35,7 +35,9 @@ const modalBody = document.getElementById('modal-body');
 const closeModal = document.querySelector('.close');
 const notification = document.getElementById('notification');
 
-// Helper: Notifikasi
+// ==================== HELPER FUNCTIONS ====================
+
+// Notifikasi
 function showNotification(message, type = 'success') {
     notification.textContent = message;
     notification.className = `notification ${type}`;
@@ -45,28 +47,28 @@ function showNotification(message, type = 'success') {
     }, 3000);
 }
 
-// Helper: Format Rupiah
+// Format Rupiah
 function formatRupiah(angka) {
     return new Intl.NumberFormat('id-ID').format(angka);
 }
 
-// Helper: Kapitalisasi nama
+// Kapitalisasi nama
 function capitalizeName(nama) {
     return nama.replace(/\b\w/g, char => char.toUpperCase());
 }
 
-// Helper: Simpan ke localStorage
+// Simpan ke localStorage
 function saveToLocalStorage(key, data) {
     localStorage.setItem(key, JSON.stringify(data));
 }
 
-// Helper: Baca dari localStorage
+// Baca dari localStorage
 function getFromLocalStorage(key) {
     const data = localStorage.getItem(key);
     return data ? JSON.parse(data) : null;
 }
 
-// Helper: Hitung status kelengkapan
+// Hitung status kelengkapan
 function hitungStatusKelengkapan(reservasi) {
     const punyaMeja = reservasi.nomorMeja && reservasi.nomorMeja.length > 0;
     const punyaDP = reservasi.dpCheck && reservasi.dpNominal > 0;
@@ -76,7 +78,25 @@ function hitungStatusKelengkapan(reservasi) {
     return 'Belum ada Meja & DP';
 }
 
-// Fungsi autentikasi
+// Sorting meja: huruf dahulu, lalu angka
+function sortTablesByNomor(tables) {
+    return tables.sort((a, b) => {
+        const aIsNumeric = /^\d+$/.test(a.nomorMeja);
+        const bIsNumeric = /^\d+$/.test(b.nomorMeja);
+        
+        if (aIsNumeric && !bIsNumeric) return 1;  // angka setelah huruf
+        if (!aIsNumeric && bIsNumeric) return -1; // huruf sebelum angka
+        
+        if (aIsNumeric && bIsNumeric) {
+            return parseInt(a.nomorMeja, 10) - parseInt(b.nomorMeja, 10);
+        }
+        // keduanya huruf
+        return a.nomorMeja.localeCompare(b.nomorMeja);
+    });
+}
+
+// ==================== AUTENTIKASI ====================
+
 document.getElementById('login-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const email = document.getElementById('email').value;
@@ -121,30 +141,61 @@ function navigateTo(page) {
     renderPage(page);
 }
 
-// Render halaman berdasarkan nama
-async function renderPage(page) {
-    switch (page) {
-        case 'dashboard':
-            renderDashboard();
-            break;
-        case 'reservation-form':
-            renderFormReservasi();
-            break;
-        case 'reservation-list':
-            renderListReservasi();
-            break;
-        case 'check-tables':
-            renderCekMeja();
-            break;
-        case 'manage-tables':
-            renderManageTables();
-            break;
-        default:
-            renderDashboard();
+// ==================== FUNGSI DATABASE ====================
+
+async function getTables() {
+    if (tablesCache.length > 0) return tablesCache;
+    try {
+        const snapshot = await db.collection('tables').get();
+        tablesCache = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        tablesCache = sortTablesByNomor(tablesCache); // <-- SORTIR
+        saveToLocalStorage('tables', tablesCache);
+        return tablesCache;
+    } catch (error) {
+        console.warn('Gagal ambil tables, pakai localStorage', error);
+        const local = getFromLocalStorage('tables') || [];
+        return sortTablesByNomor(local); // <-- SORTIR juga untuk lokal
     }
 }
 
+async function getReservationsByDate(tanggal) {
+    if (reservationsCache[tanggal]) return reservationsCache[tanggal];
+    try {
+        const snapshot = await db.collection('reservations').where('tanggal', '==', tanggal).get();
+        const reservations = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        reservationsCache[tanggal] = reservations;
+        saveToLocalStorage(`reservations_${tanggal}`, reservations);
+        return reservations;
+    } catch (error) {
+        console.warn('Gagal ambil reservasi, pakai localStorage', error);
+        return getFromLocalStorage(`reservations_${tanggal}`) || [];
+    }
+}
+
+async function getReservationById(id) {
+    // Coba dari cache dulu
+    for (let tanggal in reservationsCache) {
+        const found = reservationsCache[tanggal].find(r => r.id === id);
+        if (found) return found;
+    }
+    try {
+        const doc = await db.collection('reservations').doc(id).get();
+        if (doc.exists) return { id: doc.id, ...doc.data() };
+    } catch (error) {
+        // Cari di localStorage
+        const allLocal = getFromLocalStorage('reservations_offline') || [];
+        return allLocal.find(r => r.id === id);
+    }
+    return null;
+}
+
+async function loadInitialData() {
+    // Pre-fetch tables
+    await getTables();
+}
+
 // ==================== DASHBOARD ====================
+
 async function renderDashboard() {
     const today = new Date().toISOString().split('T')[0];
     let reservations = await getReservationsByDate(today);
@@ -173,6 +224,7 @@ async function renderDashboard() {
 }
 
 // ==================== FORM RESERVASI ====================
+
 async function renderFormReservasi(editId = null, preselectedMeja = []) {
     const today = new Date().toISOString().split('T')[0];
     let reservasi = null;
@@ -180,7 +232,7 @@ async function renderFormReservasi(editId = null, preselectedMeja = []) {
         reservasi = await getReservationById(editId);
     }
 
-    // Ambil semua meja
+    // Ambil semua meja (sudah terurut)
     const tables = await getTables();
     // Kelompokkan berdasarkan area
     const grouped = { non: [], smoking: [], tambahan: [] };
@@ -223,7 +275,7 @@ async function renderFormReservasi(editId = null, preselectedMeja = []) {
                     </div>
                     <div class="form-group">
                         <label>Nomor HP</label>
-                        <input type="text" id="noHp" value="${reservasi ? reservasi.noHp : ''}" required>
+                        <input type="tel" id="noHp" value="${reservasi ? reservasi.noHp : ''}" required>
                     </div>
                 </div>
                 <div class="form-group">
@@ -241,6 +293,9 @@ async function renderFormReservasi(editId = null, preselectedMeja = []) {
                     </label>
                     <div id="mejaGridContainer" style="margin-top:10px; ${(reservasi && reservasi.nomorMeja && reservasi.nomorMeja.length > 0) || preselectedMeja.length > 0 ? '' : 'display:none;'}">
                         <p>Pilih meja (bisa lebih dari satu):</p>
+                        <!-- Meja terpilih dipindah ke atas grid -->
+                        <div>Meja terpilih: <span id="selectedMejaDisplay">${reservasi && reservasi.nomorMeja ? reservasi.nomorMeja.join(', ') : preselectedMeja.join(', ')}</span></div>
+                        <input type="hidden" id="selectedMeja" value="${reservasi && reservasi.nomorMeja ? reservasi.nomorMeja.join(',') : preselectedMeja.join(',')}">
                         <div class="meja-grid">
     `;
 
@@ -260,8 +315,6 @@ async function renderFormReservasi(editId = null, preselectedMeja = []) {
 
     html += `
                         </div>
-                        <div>Meja terpilih: <span id="selectedMejaDisplay">${reservasi && reservasi.nomorMeja ? reservasi.nomorMeja.join(', ') : preselectedMeja.join(', ')}</span></div>
-                        <input type="hidden" id="selectedMeja" value="${reservasi && reservasi.nomorMeja ? reservasi.nomorMeja.join(',') : preselectedMeja.join(',')}">
                     </div>
                 </div>
                 <div class="form-group">
@@ -286,7 +339,7 @@ async function renderFormReservasi(editId = null, preselectedMeja = []) {
                             </div>
                             <div class="form-group">
                                 <label>Nominal DP</label>
-                                <input type="text" id="dpNominal" value="${reservasi && reservasi.dpNominal ? formatRupiah(reservasi.dpNominal) : ''}" placeholder="Contoh: 50000">
+                                <input type="text" id="dpNominal" value="${reservasi && reservasi.dpNominal ? formatRupiah(reservasi.dpNominal) : ''}" placeholder="Contoh: 50000" inputmode="numeric">
                             </div>
                         </div>
                     </div>
@@ -458,6 +511,7 @@ async function renderFormReservasi(editId = null, preselectedMeja = []) {
 }
 
 // ==================== LIST RESERVASI ====================
+
 async function renderListReservasi() {
     const today = new Date().toISOString().split('T')[0];
     let html = `
@@ -585,7 +639,8 @@ async function loadReservationsTable(tanggal, sortBy) {
     });
 }
 
-// ==================== DETAIL RESERVASI MODAL ====================
+// ==================== DETAIL RESERVASI MODAL (BARU) ====================
+
 async function showDetailReservasi(id) {
     const reservasi = await getReservationById(id);
     if (!reservasi) return;
@@ -597,26 +652,68 @@ async function showDetailReservasi(id) {
         tanggalDP = ts.toLocaleDateString('id-ID');
     }
 
+    // Tentukan class status
+    let statusClass = '';
+    if (reservasi.statusKelengkapan === 'Lengkap') statusClass = 'lengkap';
+    else if (reservasi.statusKelengkapan === 'Belum ada Meja') statusClass = 'belum-meja';
+    else if (reservasi.statusKelengkapan === 'Belum ada DP') statusClass = 'belum-dp';
+    else statusClass = 'belum-keduanya';
+
     modalBody.innerHTML = `
-        <h3>Detail Reservasi</h3>
-        <p><strong>Tanggal:</strong> ${reservasi.tanggal}</p>
-        <p><strong>Nama:</strong> ${reservasi.nama}</p>
-        <p><strong>Jumlah Tamu:</strong> ${reservasi.jumlahTamu}</p>
-        <p><strong>No HP:</strong> ${reservasi.noHp}</p>
-        <p><strong>Preferensi Area:</strong> ${reservasi.areaPreferensi}</p>
-        <p><strong>Nomor Meja:</strong> ${reservasi.nomorMeja && reservasi.nomorMeja.length ? reservasi.nomorMeja.join(', ') : '-'}</p>
-        <p><strong>Sudah Order:</strong> ${reservasi.sudahOrder ? 'Ya' : 'Tidak'}</p>
-        <p><strong>DP:</strong> ${reservasi.dpCheck ? `Ya (${reservasi.dpJenis} ${formatRupiah(reservasi.dpNominal)})` : 'Tidak'}</p>
-        <p><strong>Tanggal DP:</strong> ${tanggalDP}</p>
-        <p><strong>Catatan:</strong> ${reservasi.catatan || '-'}</p>
-        <p><strong>Status:</strong> ${reservasi.statusKelengkapan}</p>
-        <div style="display: flex; gap: 10px; margin-top: 20px;">
-            <button id="modal-edit" class="btn" data-id="${id}">Edit</button>
-            <button id="modal-delete" class="btn btn-danger" data-id="${id}">Hapus</button>
-            ${reservasi.dpCheck && reservasi.dpNominal > 0 ? `<button id="modal-delete-dp" class="btn btn-secondary" data-id="${id}">Hapus DP</button>` : ''}
+        <h3 style="margin-top:0; color:#4CAF50;">Detail Reservasi</h3>
+        <div class="reservation-detail">
+            <div class="detail-item">
+                <span class="detail-label">Tanggal</span>
+                <span class="detail-value">${reservasi.tanggal}</span>
+            </div>
+            <div class="detail-item">
+                <span class="detail-label">Nama Tamu</span>
+                <span class="detail-value">${reservasi.nama}</span>
+            </div>
+            <div class="detail-item">
+                <span class="detail-label">Jumlah Tamu</span>
+                <span class="detail-value">${reservasi.jumlahTamu}</span>
+            </div>
+            <div class="detail-item">
+                <span class="detail-label">No HP</span>
+                <span class="detail-value">${reservasi.noHp}</span>
+            </div>
+            <div class="detail-item">
+                <span class="detail-label">Preferensi Area</span>
+                <span class="detail-value">${reservasi.areaPreferensi === 'non' ? 'Non Smoking' : reservasi.areaPreferensi === 'smoking' ? 'Smoking' : 'Tambahan'}</span>
+            </div>
+            <div class="detail-item">
+                <span class="detail-label">Nomor Meja</span>
+                <span class="detail-value">${reservasi.nomorMeja && reservasi.nomorMeja.length ? reservasi.nomorMeja.join(', ') : '-'}</span>
+            </div>
+            <div class="detail-item">
+                <span class="detail-label">Sudah Order</span>
+                <span class="detail-value">${reservasi.sudahOrder ? 'Ya' : 'Tidak'}</span>
+            </div>
+            <div class="detail-item">
+                <span class="detail-label">DP</span>
+                <span class="detail-value">${reservasi.dpCheck ? `Rp ${formatRupiah(reservasi.dpNominal)} (${reservasi.dpJenis})` : 'Tidak'}</span>
+            </div>
+            <div class="detail-item">
+                <span class="detail-label">Tanggal DP</span>
+                <span class="detail-value">${tanggalDP}</span>
+            </div>
+            <div class="detail-item detail-full">
+                <span class="detail-label">Catatan</span>
+                <span class="detail-value">${reservasi.catatan || '-'}</span>
+            </div>
+            <div class="detail-item detail-full">
+                <span class="detail-label">Status</span>
+                <span class="detail-value"><span class="badge ${statusClass}">${reservasi.statusKelengkapan}</span></span>
+            </div>
+            <div class="modal-actions">
+                <button id="modal-edit" class="btn" data-id="${id}">Edit</button>
+                <button id="modal-delete" class="btn btn-danger" data-id="${id}">Hapus</button>
+                ${reservasi.dpCheck && reservasi.dpNominal > 0 ? `<button id="modal-delete-dp" class="btn btn-secondary" data-id="${id}">Hapus DP</button>` : ''}
+            </div>
         </div>
     `;
-    modal.style.display = 'block';
+    modal.style.display = 'flex'; // Pastikan modal menggunakan flex untuk centering
 
     document.getElementById('modal-edit').addEventListener('click', () => {
         modal.style.display = 'none';
@@ -678,6 +775,7 @@ async function hapusReservasi(id) {
 }
 
 // ==================== CEK MEJA KOSONG ====================
+
 async function renderCekMeja() {
     const today = new Date().toISOString().split('T')[0];
     let html = `
@@ -700,7 +798,7 @@ async function renderCekMeja() {
 }
 
 async function renderMejaGridByDate(tanggal) {
-    const tables = await getTables();
+    const tables = await getTables(); // sudah terurut
     const reservations = await getReservationsByDate(tanggal);
     const occupiedMap = new Map(); // nomorMeja -> reservasi id
     reservations.forEach(r => {
@@ -766,6 +864,7 @@ async function renderMejaGridByDate(tanggal) {
 }
 
 // ==================== ATUR MEJA ====================
+
 async function renderManageTables() {
     let html = `
         <h2>Atur Meja</h2>
@@ -788,7 +887,7 @@ async function renderManageTables() {
 }
 
 async function loadTablesList() {
-    const tables = await getTables();
+    const tables = await getTables(); // sudah terurut
     let html = `
         <table>
             <thead><tr><th>Nomor Meja</th><th>Area</th><th>Aksi</th></tr></thead>
@@ -864,7 +963,7 @@ function showAddTableModal() {
             <button type="submit" class="btn">Simpan</button>
         </form>
     `;
-    modal.style.display = 'block';
+    modal.style.display = 'flex';
 
     document.getElementById('add-table-form').addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -900,7 +999,7 @@ M2,smoking
 M3,tambahan" style="width:100%;"></textarea>
         <button id="import-csv-submit" class="btn" style="margin-top:10px;">Import</button>
     `;
-    modal.style.display = 'block';
+    modal.style.display = 'flex';
 
     document.getElementById('import-csv-submit').addEventListener('click', async () => {
         const csv = document.getElementById('csv-text').value.trim();
@@ -945,58 +1044,31 @@ M3,tambahan" style="width:100%;"></textarea>
     });
 }
 
-// ==================== FUNGSI DATABASE ====================
-async function getTables() {
-    if (tablesCache.length > 0) return tablesCache;
-    try {
-        const snapshot = await db.collection('tables').get();
-        tablesCache = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        saveToLocalStorage('tables', tablesCache);
-        return tablesCache;
-    } catch (error) {
-        console.warn('Gagal ambil tables, pakai localStorage', error);
-        return getFromLocalStorage('tables') || [];
-    }
-}
-
-async function getReservationsByDate(tanggal) {
-    if (reservationsCache[tanggal]) return reservationsCache[tanggal];
-    try {
-        const snapshot = await db.collection('reservations').where('tanggal', '==', tanggal).get();
-        const reservations = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        reservationsCache[tanggal] = reservations;
-        saveToLocalStorage(`reservations_${tanggal}`, reservations);
-        return reservations;
-    } catch (error) {
-        console.warn('Gagal ambil reservasi, pakai localStorage', error);
-        return getFromLocalStorage(`reservations_${tanggal}`) || [];
-    }
-}
-
-async function getReservationById(id) {
-    // Coba dari cache dulu
-    for (let tanggal in reservationsCache) {
-        const found = reservationsCache[tanggal].find(r => r.id === id);
-        if (found) return found;
-    }
-    try {
-        const doc = await db.collection('reservations').doc(id).get();
-        if (doc.exists) return { id: doc.id, ...doc.data() };
-    } catch (error) {
-        // Cari di localStorage
-        const allLocal = getFromLocalStorage('reservations_offline') || [];
-        return allLocal.find(r => r.id === id);
-    }
-    return null;
-}
-
-async function loadInitialData() {
-    // Pre-fetch tables
-    await getTables();
-}
-
 // Tutup modal
 closeModal.onclick = () => modal.style.display = 'none';
 window.onclick = (e) => {
     if (e.target === modal) modal.style.display = 'none';
 };
+
+// Render halaman berdasarkan nama
+async function renderPage(page) {
+    switch (page) {
+        case 'dashboard':
+            renderDashboard();
+            break;
+        case 'reservation-form':
+            renderFormReservasi();
+            break;
+        case 'reservation-list':
+            renderListReservasi();
+            break;
+        case 'check-tables':
+            renderCekMeja();
+            break;
+        case 'manage-tables':
+            renderManageTables();
+            break;
+        default:
+            renderDashboard();
+    }
+}
