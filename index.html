@@ -2,64 +2,195 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
     <title>Sistem Reservasi Restoran</title>
     <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <!-- CSS -->
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div id="app">
-        <!-- Halaman Login -->
-        <div id="login-page" class="page">
-            <div class="login-container">
-                <h2>Login Staf Reservasi</h2>
-                <form id="login-form">
-                    <div class="form-group">
-                        <label>Email</label>
-                        <input type="email" id="email" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Password</label>
-                        <input type="password" id="password" required>
-                    </div>
-                    <button type="submit" class="btn btn-primary">Login</button>
-                    <div id="login-error" style="color:red; margin-top:10px;"></div>
-                </form>
-            </div>
+    <div id="loginContainer" class="login-container">
+        <div class="login-box">
+            <h2>Login Staf Restoran</h2>
+            <form id="loginForm">
+                <input type="email" id="email" placeholder="Email" required>
+                <input type="password" id="password" placeholder="Password" required>
+                <button type="submit">Masuk</button>
+            </form>
+            <div id="loginError" class="error-message"></div>
         </div>
+    </div>
 
-        <!-- Konten Aplikasi (hanya tampil setelah login) -->
-        <div id="app-content" style="display:none;">
-            <h1 class="app-title">Reservasi Bukber</h1>
+    <div id="appContainer" style="display: none;">
+        <nav class="navbar">
+            <div class="nav-brand">RestoReserve</div>
+            <ul class="nav-menu" id="navMenu">
+                <li><a href="#" data-section="dashboard">Dashboard</a></li>
+                <li><a href="#" data-section="new">Buat Reservasi</a></li>
+                <li><a href="#" data-section="list">List Reservasi</a></li>
+                <li><a href="#" data-section="check">Cek Meja Kosong</a></li>
+                <li><a href="#" data-section="tables">Atur Meja</a></li>
+                <li><button id="logoutBtn">Logout</button></li>
+            </ul>
+            <div class="hamburger" id="hamburger">☰</div>
+        </nav>
 
-            <!-- Navigasi + Logout -->
-            <nav class="navbar">
-                <button class="nav-btn" data-page="dashboard">Dashboard</button>
-                <button class="nav-btn" data-page="reservasi-baru">Reservasi Baru</button>
-                <button class="nav-btn" data-page="list-reservasi">List Reservasi</button>
-                <button class="nav-btn" data-page="cek-meja">Cek Meja</button>
-                <button class="nav-btn" data-page="atur-meja">Atur Meja</button>
-                <button id="logout-btn" class="btn btn-sm btn-danger" style="margin-left:auto;">Logout</button>
-            </nav>
-
-            <!-- Konten dinamis -->
-            <main id="content"></main>
-
-            <!-- Modal -->
-            <div id="modal" class="modal hidden">
-                <div class="modal-content">
-                    <span class="close-modal">&times;</span>
-                    <div id="modal-body"></div>
+        <main id="mainContent">
+            <!-- Dashboard Section -->
+            <section id="dashboardSection" class="section active">
+                <h2>Dashboard Hari Ini</h2>
+                <div class="stats-grid">
+                    <div class="stat-card" id="statReservasiHariIni">0</div>
+                    <div class="stat-card" id="statMejaKosong">0</div>
+                    <div class="stat-card" id="statBelumDP">0</div>
+                    <div class="stat-card" id="statTanpaMeja">0</div>
                 </div>
-            </div>
+            </section>
 
-            <!-- Notifikasi -->
-            <div id="notification" class="notification hidden"></div>
+            <!-- Form Reservasi Section -->
+            <section id="reservationFormSection" class="section">
+                <h2 id="formTitle">Buat Reservasi Baru</h2>
+                <form id="reservationForm">
+                    <input type="hidden" id="reservationId" value="">
+                    
+                    <label for="tanggal">Tanggal Reservasi</label>
+                    <input type="date" id="tanggal" required>
+
+                    <label for="nama">Nama Tamu</label>
+                    <input type="text" id="nama" required>
+
+                    <label for="jumlahTamu">Jumlah Tamu</label>
+                    <input type="number" id="jumlahTamu" min="1" value="2" required>
+
+                    <label for="noHp">Nomor HP</label>
+                    <input type="tel" id="noHp" required>
+
+                    <label for="areaPreferensi">Preferensi Area</label>
+                    <select id="areaPreferensi">
+                        <option value="non">Non Smoking</option>
+                        <option value="smoking">Smoking</option>
+                        <option value="tambahan">Tambahan</option>
+                    </select>
+
+                    <div class="checkbox-group">
+                        <label>
+                            <input type="checkbox" id="sudahAdaMeja"> Sudah Ada Nomor Meja?
+                        </label>
+                    </div>
+                    <div id="mejaGridContainer" style="display: none;">
+                        <p>Pilih meja (satu atau lebih):</p>
+                        <div id="mejaGrid" class="meja-grid"></div>
+                        <div>Meja dipilih: <span id="selectedMejaDisplay"></span></div>
+                    </div>
+
+                    <div class="checkbox-group">
+                        <label>
+                            <input type="checkbox" id="sudahOrder"> Sudah Ada Orderan?
+                        </label>
+                    </div>
+
+                    <div class="checkbox-group">
+                        <label>
+                            <input type="checkbox" id="adaDP"> Ada Pembayaran DP?
+                        </label>
+                    </div>
+                    <div id="dpFields" style="display: none;">
+                        <label>Jenis Pembayaran</label>
+                        <select id="dpJenis">
+                            <option value="Transfer">Transfer</option>
+                            <option value="Cash">Cash</option>
+                        </select>
+                        <label for="dpNominal">Nominal DP (Rp)</label>
+                        <input type="text" id="dpNominal" placeholder="contoh: 10000">
+                    </div>
+
+                    <label for="catatan">Catatan</label>
+                    <textarea id="catatan" rows="2"></textarea>
+
+                    <div class="form-actions">
+                        <button type="submit" id="simpanReservasi">Simpan Reservasi</button>
+                        <button type="button" id="batalEdit">Batal</button>
+                    </div>
+                </form>
+            </section>
+
+            <!-- List Reservasi Section -->
+            <section id="listSection" class="section">
+                <h2>Daftar Reservasi</h2>
+                <div class="filter-bar">
+                    <label for="listTanggal">Tanggal:</label>
+                    <input type="date" id="listTanggal">
+                    <button id="muatReservasi">Muat</button>
+                    <label for="sortBy">Urutkan:</label>
+                    <select id="sortBy">
+                        <option value="dp">Urutan DP</option>
+                        <option value="meja">Nomor Meja</option>
+                        <option value="status">Status Kelengkapan</option>
+                    </select>
+                </div>
+                <div class="table-responsive">
+                    <table id="reservasiTable">
+                        <thead>
+                            <tr>
+                                <th>Meja</th>
+                                <th>Nama</th>
+                                <th>Tamu</th>
+                                <th>Urutan DP</th>
+                                <th>Status</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="reservasiTableBody">
+                            <!-- diisi javascript -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Cek Meja Kosong Section -->
+            <section id="checkSection" class="section">
+                <h2>Cek Ketersediaan Meja</h2>
+                <label for="checkTanggal">Tanggal:</label>
+                <input type="date" id="checkTanggal">
+                <button id="muatMejaKosong">Tampilkan</button>
+                <div id="mejaKosongGrid" class="meja-grid"></div>
+            </section>
+
+            <!-- Atur Meja Section -->
+            <section id="tablesSection" class="section">
+                <h2>Atur Data Meja</h2>
+                <button id="tambahMejaBtn">Tambah Meja Baru</button>
+                <button id="importCsvBtn">Import dari CSV</button>
+                <div class="table-responsive">
+                    <table id="mejaTable">
+                        <thead>
+                            <tr>
+                                <th>Nomor Meja</th>
+                                <th>Area</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="mejaTableBody">
+                            <!-- diisi javascript -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+
+        <!-- Modal -->
+        <div id="modal" class="modal">
+            <div class="modal-content">
+                <span class="close-modal">&times;</span>
+                <div id="modalBody"></div>
+            </div>
         </div>
+
+        <!-- Notifikasi -->
+        <div id="notification" class="notification"></div>
     </div>
 
     <!-- JavaScript -->
