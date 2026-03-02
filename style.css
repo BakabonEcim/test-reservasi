@@ -392,3 +392,24 @@ tr:hover {
         flex: 1 1 100%;
     }
 }
+/* ... (semua CSS sebelumnya tetap sama, tambahkan di bawah) ... */
+
+/* Tombol logout di dashboard */
+.logout-container {
+    margin-top: 30px;
+    text-align: center;
+}
+
+.btn-logout {
+    background-color: #f44336;
+    color: white;
+    padding: 10px 30px;
+    font-size: 16px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.btn-logout:hover {
+    background-color: #d32f2f;
+}
