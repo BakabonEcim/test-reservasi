@@ -1,12 +1,20 @@
 // Konfigurasi Firebase - GANTI DENGAN MILIK ANDA
 const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_AUTH_DOMAIN",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_STORAGE_BUCKET",
-    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-    appId: "YOUR_APP_ID"
+
+  apiKey: "AIzaSyAqb4sr3rDjuERBh2iyS6nrMbnBKZ1Pgfs",
+
+  authDomain: "reservasi-cc592.firebaseapp.com",
+
+  projectId: "reservasi-cc592",
+
+  storageBucket: "reservasi-cc592.firebasestorage.app",
+
+  messagingSenderId: "464707598627",
+
+  appId: "1:464707598627:web:3a31787cc49ed70abc3496"
+
 };
+
 
 // Inisialisasi Firebase
 firebase.initializeApp(firebaseConfig);
