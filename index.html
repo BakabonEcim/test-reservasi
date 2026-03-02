@@ -3,52 +3,65 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
-    <title>Sistem Reservasi Restoran</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Sistem Reservasi Bukber</title>
     <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <!-- CSS -->
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div id="login-container" class="container">
-        <h2>Login Staff</h2>
-        <form id="login-form">
-            <input type="email" id="email" placeholder="Email" required>
-            <input type="password" id="password" placeholder="Password" required>
-            <button type="submit">Masuk</button>
-        </form>
-    </div>
+    <div id="app">
+        <!-- Halaman Login -->
+        <div id="login-page" class="page">
+            <div class="login-container">
+                <h2>Login Staf Reservasi</h2>
+                <form id="login-form">
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="email" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Login</button>
+                    <div id="login-error" style="color:red; margin-top:10px;"></div>
+                </form>
+            </div>
+        </div>
 
-    <div id="app" style="display: none;">
-        <nav id="navbar">
-            <div class="nav-brand">Restoran Reservasi</div>
-            <ul class="nav-links">
-                <li><a href="#" data-page="dashboard">Dashboard</a></li>
-                <li><a href="#" data-page="reservation-form">Buat Reservasi</a></li>
-                <li><a href="#" data-page="reservation-list">List Reservasi</a></li>
-                <li><a href="#" data-page="check-tables">Cek Meja</a></li>
-                <li><a href="#" data-page="manage-tables">Atur Meja</a></li>
-            </ul>
-            <button id="logout-btn">Logout</button>
-        </nav>
+        <!-- Konten Aplikasi (hanya tampil setelah login) -->
+        <div id="app-content" style="display:none;">
+            <h1 class="app-title">Reservasi Bukber</h1>
 
-        <main id="content">
-            <!-- Halaman akan di-render di sini -->
-        </main>
-    </div>
+            <!-- Navigasi (tanpa tombol logout) -->
+            <nav class="navbar">
+                <button class="nav-btn" data-page="dashboard">Dashboard</button>
+                <button class="nav-btn" data-page="reservasi-baru">Reservasi Baru</button>
+                <button class="nav-btn" data-page="list-reservasi">List Reservasi</button>
+                <button class="nav-btn" data-page="cek-meja">Cek Meja</button>
+                <button class="nav-btn" data-page="atur-meja">Atur Meja</button>
+            </nav>
 
-    <!-- Modal untuk detail, tambah meja, import CSV, konfirmasi -->
-    <div id="modal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <div id="modal-body"></div>
+            <!-- Konten dinamis -->
+            <main id="content"></main>
+
+            <!-- Modal -->
+            <div id="modal" class="modal hidden">
+                <div class="modal-content">
+                    <span class="close-modal">&times;</span>
+                    <div id="modal-body"></div>
+                </div>
+            </div>
+
+            <!-- Notifikasi -->
+            <div id="notification" class="notification hidden"></div>
         </div>
     </div>
 
-    <!-- Notifikasi -->
-    <div id="notification" class="notification hidden"></div>
-
+    <!-- JavaScript -->
     <script src="script.js"></script>
 </body>
 </html>
