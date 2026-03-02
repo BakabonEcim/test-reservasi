@@ -6,339 +6,265 @@
 
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: #f5f5f5;
-    color: #333;
+    background: #f5f5f5;
+    min-height: 100vh;
 }
 
 /* Login */
-.login-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
-    background-color: #4CAF50;
-}
-
-.login-box {
-    background-color: white;
-    padding: 2rem;
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-    width: 90%;
+#login-container {
     max-width: 400px;
+    margin: 50px auto;
+    background: white;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
 }
-
-.login-box h2 {
+#login-container h2 {
     text-align: center;
-    margin-bottom: 1.5rem;
     color: #4CAF50;
+    margin-bottom: 20px;
 }
-
-.login-box input {
+#login-form input {
     width: 100%;
-    padding: 0.75rem;
-    margin-bottom: 1rem;
+    padding: 12px;
+    margin-bottom: 15px;
     border: 1px solid #ddd;
     border-radius: 4px;
-    font-size: 1rem;
 }
-
-.login-box button {
+#login-form button {
     width: 100%;
-    padding: 0.75rem;
-    background-color: #4CAF50;
+    padding: 12px;
+    background: #4CAF50;
     color: white;
     border: none;
     border-radius: 4px;
-    font-size: 1rem;
+    font-size: 16px;
     cursor: pointer;
 }
-
-.login-box button:hover {
-    background-color: #45a049;
+#login-form button:hover {
+    background: #45a049;
 }
 
-.error-message {
-    color: #f44336;
-    text-align: center;
-    margin-top: 1rem;
-}
-
-/* App Container */
-#appContainer {
+/* App */
+#app {
     display: flex;
     flex-direction: column;
     min-height: 100vh;
 }
 
 /* Navbar */
-.navbar {
-    background-color: #4CAF50;
+#navbar {
+    background: #4CAF50;
     color: white;
-    padding: 1rem;
+    padding: 10px 20px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
 }
-
 .nav-brand {
     font-size: 1.5rem;
     font-weight: bold;
 }
-
-.nav-menu {
+.nav-links {
     list-style: none;
     display: flex;
-    gap: 1rem;
-    margin: 0;
-    padding: 0;
+    gap: 15px;
+    flex-wrap: wrap;
 }
-
-.nav-menu li a, .nav-menu li button {
+.nav-links a {
     color: white;
     text-decoration: none;
-    padding: 0.5rem 1rem;
+    padding: 5px 10px;
     border-radius: 4px;
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-size: 1rem;
 }
-
-.nav-menu li a:hover, .nav-menu li button:hover {
-    background-color: rgba(255,255,255,0.2);
+.nav-links a:hover {
+    background: rgba(255,255,255,0.2);
 }
-
-.hamburger {
-    display: none;
-    font-size: 1.5rem;
+#logout-btn {
+    background: transparent;
+    border: 1px solid white;
+    color: white;
+    padding: 5px 15px;
+    border-radius: 4px;
     cursor: pointer;
 }
-
-/* Main Content */
-main {
-    flex: 1;
-    padding: 1.5rem;
-    background-color: #fff;
-}
-
-.section {
-    display: none;
-}
-
-.section.active {
-    display: block;
-}
-
-h2 {
-    margin-bottom: 1.5rem;
+#logout-btn:hover {
+    background: white;
     color: #4CAF50;
 }
 
-/* Stats Grid */
-.stats-grid {
+/* Main content */
+#content {
+    flex: 1;
+    padding: 20px;
+    overflow-x: auto;
+}
+
+/* Card dashboard */
+.dashboard-cards {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
-    margin-bottom: 2rem;
+    gap: 20px;
+    margin-top: 20px;
 }
-
-.stat-card {
-    background-color: #f9f9f9;
-    border: 1px solid #ddd;
+.card {
+    background: white;
+    padding: 20px;
     border-radius: 8px;
-    padding: 1.5rem;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     text-align: center;
-    font-size: 2rem;
-    font-weight: bold;
+}
+.card h3 {
     color: #4CAF50;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 10px;
+}
+.card .value {
+    font-size: 2.5rem;
+    font-weight: bold;
 }
 
-.stat-card::before {
-    content: attr(data-label);
+/* Form reservasi */
+.form-reservasi {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    max-width: 700px;
+    margin: 0 auto;
+}
+.form-group {
+    margin-bottom: 15px;
+}
+.form-group label {
     display: block;
-    font-size: 1rem;
-    font-weight: normal;
-    color: #666;
-    margin-bottom: 0.5rem;
+    margin-bottom: 5px;
+    font-weight: 600;
 }
-
-/* Form */
-form label {
-    display: block;
-    margin-top: 1rem;
-    font-weight: 500;
-}
-
-form input, form select, form textarea {
+.form-group input, .form-group select, .form-group textarea {
     width: 100%;
-    padding: 0.75rem;
-    margin-top: 0.25rem;
-    border: 1px solid #ccc;
+    padding: 10px;
+    border: 1px solid #ddd;
     border-radius: 4px;
-    font-size: 1rem;
 }
-
-.checkbox-group {
-    margin-top: 1rem;
+.form-group input[type="checkbox"] {
+    width: auto;
+    margin-right: 10px;
 }
-
-.checkbox-group label {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-weight: normal;
-    cursor: pointer;
-}
-
-.form-actions {
-    margin-top: 2rem;
+.form-row {
     display: flex;
-    gap: 1rem;
-    justify-content: flex-end;
+    gap: 15px;
+    flex-wrap: wrap;
 }
-
-button {
-    padding: 0.75rem 1.5rem;
-    background-color: #4CAF50;
+.form-row .form-group {
+    flex: 1;
+}
+.btn {
+    background: #4CAF50;
     color: white;
+    padding: 10px 20px;
     border: none;
     border-radius: 4px;
-    font-size: 1rem;
     cursor: pointer;
+    font-size: 16px;
+}
+.btn-danger {
+    background: #f44336;
+}
+.btn-secondary {
+    background: #9e9e9e;
+}
+.btn:hover {
+    opacity: 0.9;
 }
 
-button:hover {
-    background-color: #45a049;
-}
-
-button#batalEdit {
-    background-color: #f44336;
-}
-
-button#batalEdit:hover {
-    background-color: #d32f2f;
-}
-
-/* Meja Grid */
+/* Grid meja */
 .meja-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-    gap: 0.5rem;
-    margin: 1rem 0;
-    max-height: 300px;
-    overflow-y: auto;
-    border: 1px solid #eee;
-    padding: 1rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    margin-top: 10px;
+}
+.meja-area {
+    flex: 1 1 200px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 10px;
+    background: #fafafa;
+}
+.meja-area h4 {
+    margin-bottom: 10px;
+    text-align: center;
+    background: #4CAF50;
+    color: white;
+    padding: 5px;
     border-radius: 4px;
 }
-
+.meja-items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
 .meja-item {
-    padding: 0.75rem;
-    text-align: center;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     border: 2px solid;
-    border-radius: 4px;
+    border-radius: 6px;
     cursor: pointer;
     font-weight: bold;
-    transition: all 0.2s;
+    transition: 0.2s;
 }
-
-.meja-item.non {
-    border-color: #2196F3; /* biru */
-    background-color: #E3F2FD;
-}
-
-.meja-item.smoking {
-    border-color: #FF9800; /* orange */
-    background-color: #FFF3E0;
-}
-
-.meja-item.tambahan {
-    border-color: #9C27B0; /* ungu */
-    background-color: #F3E5F5;
-}
-
-.meja-item.selected {
-    background-color: #4CAF50;
-    color: white;
-    border-color: #2E7D32;
-}
-
-.meja-item.terisi {
-    opacity: 0.3;
-    pointer-events: none;
-}
-
 .meja-item.kosong {
-    background-color: #C8E6C9;
-    border-color: #2E7D32;
-    cursor: pointer;
+    background: #4CAF50;
+    color: white;
+    border-color: #2e7d32;
+}
+.meja-item.terisi {
+    background: #616161;
+    color: white;
+    border-color: #424242;
+    opacity: 0.8;
+    cursor: not-allowed;
+}
+.meja-item.selected {
+    box-shadow: 0 0 0 3px gold;
 }
 
-/* Tabel */
-.table-responsive {
+/* Tabel reservasi */
+.table-container {
     overflow-x: auto;
-    margin-top: 1rem;
 }
-
 table {
     width: 100%;
     border-collapse: collapse;
-    min-width: 600px;
+    background: white;
 }
-
 th, td {
-    padding: 0.75rem;
+    padding: 10px;
     text-align: left;
     border-bottom: 1px solid #ddd;
 }
-
 th {
-    background-color: #f2f2f2;
-    font-weight: 600;
+    background: #4CAF50;
+    color: white;
 }
-
 tr:hover {
-    background-color: #f5f5f5;
+    background: #f5f5f5;
     cursor: pointer;
 }
-
-td button {
-    padding: 0.25rem 0.5rem;
-    margin: 0 0.25rem;
-    font-size: 0.85rem;
-}
-
-/* Status Badge */
-.status-badge {
+.badge {
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    color: white;
     display: inline-block;
-    padding: 0.25rem 0.5rem;
-    border-radius: 16px;
-    font-size: 0.85rem;
-    font-weight: 500;
 }
-
-.status-lengkap {
-    background-color: #C8E6C9;
-    color: #2E7D32;
-}
-
-.status-belum-meja {
-    background-color: #FFCDD2;
-    color: #B71C1C;
-}
-
-.status-belum-dp {
-    background-color: #FFF9C4;
-    color: #F57F17;
-}
-
-.status-belum-keduanya {
-    background-color: #FFE0B2;
-    color: #E65100;
-}
+.badge.lengkap { background: #4CAF50; }
+.badge.belum-meja { background: #ff9800; }
+.badge.belum-dp { background: #f44336; }
+.badge.belum-keduanya { background: #9e9e9e; }
 
 /* Modal */
 .modal {
@@ -349,70 +275,72 @@ td button {
     top: 0;
     width: 100%;
     height: 100%;
+    overflow: auto;
     background-color: rgba(0,0,0,0.5);
 }
-
 .modal-content {
-    background-color: white;
+    background-color: #fefefe;
     margin: 5% auto;
-    padding: 1.5rem;
-    border-radius: 8px;
+    padding: 20px;
+    border: 1px solid #888;
     width: 90%;
-    max-width: 500px;
+    max-width: 600px;
+    border-radius: 8px;
     position: relative;
-    max-height: 80vh;
-    overflow-y: auto;
 }
-
-.close-modal {
-    position: absolute;
-    right: 1rem;
-    top: 1rem;
-    font-size: 1.5rem;
+.close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
     cursor: pointer;
 }
+.close:hover {
+    color: black;
+}
 
-/* Notification */
+/* Notifikasi */
 .notification {
     position: fixed;
-    bottom: 1rem;
+    bottom: 20px;
     left: 50%;
     transform: translateX(-50%);
-    background-color: #333;
+    background: #333;
     color: white;
-    padding: 0.75rem 1.5rem;
+    padding: 12px 24px;
     border-radius: 4px;
-    z-index: 1100;
-    display: none;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    z-index: 2000;
+    transition: opacity 0.3s;
 }
-
-.notification.show {
-    display: block;
+.notification.hidden {
+    opacity: 0;
+    pointer-events: none;
 }
+.notification.success { background: #4CAF50; }
+.notification.error { background: #f44336; }
 
-/* Responsive */
+/* Responsif */
 @media (max-width: 600px) {
-    .nav-menu {
-        display: none;
+    #navbar {
         flex-direction: column;
+        align-items: stretch;
+    }
+    .nav-links {
+        flex-direction: column;
+        align-items: center;
+        margin: 10px 0;
+    }
+    .nav-links li {
         width: 100%;
-        margin-top: 1rem;
+        text-align: center;
     }
-    .nav-menu.active {
-        display: flex;
+    #logout-btn {
+        width: 100%;
     }
-    .hamburger {
-        display: block;
-    }
-    .stats-grid {
+    .dashboard-cards {
         grid-template-columns: 1fr;
     }
-    .meja-grid {
-        grid-template-columns: repeat(3, 1fr);
-    }
-    .modal-content {
-        width: 95%;
-        margin: 10% auto;
+    .meja-area {
+        flex: 1 1 100%;
     }
 }
