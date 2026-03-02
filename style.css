@@ -266,7 +266,7 @@ tr:hover {
 .badge.belum-dp { background: #f44336; }
 .badge.belum-keduanya { background: #9e9e9e; }
 
-/* Modal */
+/* Modal - Diperbarui: center vertikal dan tampilan lebih menarik */
 .modal {
     display: none;
     position: fixed;
@@ -275,28 +275,76 @@ tr:hover {
     top: 0;
     width: 100%;
     height: 100%;
-    overflow: auto;
     background-color: rgba(0,0,0,0.5);
+    /* Pusatkan konten secara vertikal dan horizontal */
+    align-items: center;
+    justify-content: center;
 }
+
 .modal-content {
     background-color: #fefefe;
-    margin: 5% auto;
-    padding: 20px;
-    border: 1px solid #888;
+    padding: 25px;
+    border-radius: 12px;
     width: 90%;
     max-width: 600px;
-    border-radius: 8px;
+    max-height: 90vh;
+    overflow-y: auto;
     position: relative;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
 }
+
 .close {
     color: #aaa;
     float: right;
     font-size: 28px;
     font-weight: bold;
     cursor: pointer;
+    position: sticky;
+    top: 0;
+    background: white;
+    z-index: 1;
 }
 .close:hover {
     color: black;
+}
+
+/* Detail reservasi dalam modal */
+.reservation-detail {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px 20px;
+    margin-top: 15px;
+}
+.detail-item {
+    display: flex;
+    flex-direction: column;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 5px;
+}
+.detail-label {
+    font-size: 0.85rem;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.detail-value {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #333;
+}
+.detail-value .badge {
+    font-size: 0.9rem;
+    padding: 4px 10px;
+}
+.detail-full {
+    grid-column: span 2;
+}
+.modal-actions {
+    grid-column: span 2;
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 20px;
 }
 
 /* Notifikasi */
