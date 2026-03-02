@@ -182,6 +182,7 @@ async function deleteReservation(resId, tanggal) {
         await db.collection('reservations').doc(resId).delete();
         await loadReservationsByDate(tanggal);
         showNotification('Reservasi dihapus');
+        return true;
     } catch (error) {
         showNotification('Gagal hapus reservasi, hapus dari localStorage', true);
         let localRes = loadFromLocalStorage(`reservations_${tanggal}`) || [];
@@ -189,6 +190,7 @@ async function deleteReservation(resId, tanggal) {
         saveToLocalStorage(`reservations_${tanggal}`, localRes);
         reservations = localRes;
         calculateUrutanDP();
+        return false;
     }
 }
 
@@ -584,7 +586,7 @@ async function initReservasiBaru() {
     });
 }
 
-// List Reservasi (dengan event delegation)
+// List Reservasi (dengan event listener langsung)
 function renderListReservasi() {
     return `
         <div class="page">
@@ -643,33 +645,45 @@ async function initListReservasi() {
         const container = document.getElementById('listContainer');
         container.innerHTML = renderTable();
         
-        // Event delegation untuk klik pada container
-        container.addEventListener('click', (e) => {
-            const target = e.target;
-            
-            // Tombol edit
-            if (target.classList.contains('edit-reservasi')) {
-                e.stopPropagation();
-                const id = target.dataset.id;
-                editReservasi(id);
-                return;
-            }
-            
-            // Tombol hapus
-            if (target.classList.contains('hapus-reservasi')) {
-                e.stopPropagation();
-                const id = target.dataset.id;
-                hapusReservasi(id);
-                return;
-            }
-            
-            // Klik di baris (cari elemen tr terdekat)
-            const row = target.closest('tr[data-id]');
-            if (row) {
-                const id = row.dataset.id;
+        // Pasang event listener untuk setiap tombol dan baris
+        attachTableEvents();
+    }
+    
+    function attachTableEvents() {
+        // Pasang event untuk setiap baris
+        document.querySelectorAll('#listContainer tbody tr').forEach(row => {
+            row.addEventListener('click', function(e) {
+                // Jangan trigger jika klik di tombol
+                if (e.target.tagName === 'BUTTON') return;
+                
+                const id = this.dataset.id;
                 const r = reservations.find(r => r.id === id);
                 if (r) showReservationDetailModal(r);
-            }
+            });
+        });
+        
+        // Pasang event untuk tombol edit
+        document.querySelectorAll('.edit-reservasi').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const id = this.dataset.id;
+                editReservasi(id);
+            });
+        });
+        
+        // Pasang event untuk tombol hapus
+        document.querySelectorAll('.hapus-reservasi').forEach(btn => {
+            btn.addEventListener('click', async function(e) {
+                e.stopPropagation();
+                const id = this.dataset.id;
+                if (confirm('Hapus reservasi ini?')) {
+                    await deleteReservation(id, selectedDate);
+                    // Refresh tampilan
+                    await loadReservationsByDate(selectedDate);
+                    sortReservations();
+                    displayTable();
+                }
+            });
         });
     }
     
@@ -991,19 +1005,6 @@ window.editReservasi = function(id) {
     }, 100);
 };
 
-window.hapusReservasi = async function(id) {
-    if (confirm('Hapus reservasi ini?')) {
-        await deleteReservation(id, selectedDate);
-        // Setelah hapus, render ulang list reservasi
-        if (currentPage === 'list-reservasi') {
-            renderPage('list-reservasi');
-        } else {
-            // Jika dari modal, kembali ke list
-            renderPage('list-reservasi');
-        }
-    }
-};
-
 // ==================== LOGIN & AUTENTIKASI ====================
 document.getElementById('login-form').addEventListener('submit', (e) => {
     e.preventDefault();
@@ -1035,12 +1036,9 @@ auth.onAuthStateChanged(user => {
         
         // Pasang event listener untuk tombol navigasi
         document.querySelectorAll('.nav-btn').forEach(btn => {
-            // Hapus listener lama jika ada (gunakan fungsi bernama atau referensi)
-            btn.removeEventListener('click', window.navHandler);
-            window.navHandler = async () => {
-                await renderPage(btn.dataset.page);
-            };
-            btn.addEventListener('click', window.navHandler);
+            btn.addEventListener('click', async function() {
+                await renderPage(this.dataset.page);
+            });
         });
 
         startApp();
@@ -1055,4 +1053,4 @@ function startApp() {
     loadTablesFromFirebase().then(() => {
         renderPage('dashboard');
     });
-}
+                }
