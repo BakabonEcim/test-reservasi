@@ -310,7 +310,6 @@ async function renderPage(page) {
 
 // Dashboard
 async function renderDashboard() {
-    // Gunakan tanggal lokal untuk dashboard
     const today = new Date();
     const offset = today.getTimezoneOffset() * 60000;
     const localDate = new Date(today.getTime() - offset);
@@ -351,7 +350,7 @@ async function renderDashboard() {
                     <div class="stat-label">Reservasi tanpa meja</div>
                 </div>
             </div>
-            <!-- Tombol Logout di sini -->
+            <!-- Tombol Logout -->
             <div style="text-align: center; margin-top: 30px;">
                 <button id="logout-btn-dashboard" class="btn btn-danger">Logout</button>
             </div>
@@ -361,7 +360,6 @@ async function renderDashboard() {
 
 // Reservasi Baru
 function renderReservasiBaru() {
-    // Gunakan tanggal lokal untuk min dan default
     const today = new Date();
     const offset = today.getTimezoneOffset() * 60000;
     const localDate = new Date(today.getTime() - offset);
@@ -447,7 +445,6 @@ async function initReservasiBaru() {
     const namaInput = document.getElementById('nama');
     const tanggalInput = document.getElementById('tanggal');
     
-    // Gunakan tanggal lokal untuk validasi
     const today = new Date();
     const offset = today.getTimezoneOffset() * 60000;
     const localDate = new Date(today.getTime() - offset);
@@ -876,7 +873,16 @@ document.addEventListener('click', async (e) => {
         e.stopPropagation();
         const id = target.dataset.id;
         if (!id) return;
-        const reservasi = reservations.find(r => r.id === id);
+        
+        // Cari di reservations array
+        let reservasi = reservations.find(r => r.id === id);
+        
+        // Jika tidak ditemukan, coba muat ulang data untuk tanggal tersebut (mungkin array belum update)
+        if (!reservasi && currentPage === 'list-reservasi') {
+            await loadReservationsByDate(selectedDate);
+            reservasi = reservations.find(r => r.id === id);
+        }
+        
         if (!reservasi) {
             showNotification('Data reservasi tidak ditemukan', true);
             return;
@@ -932,6 +938,19 @@ document.addEventListener('click', async (e) => {
         e.stopPropagation();
         const id = target.dataset.id;
         if (!id) return;
+        
+        // Cari reservasi untuk memastikan ada
+        let reservasi = reservations.find(r => r.id === id);
+        if (!reservasi && currentPage === 'list-reservasi') {
+            await loadReservationsByDate(selectedDate);
+            reservasi = reservations.find(r => r.id === id);
+        }
+        
+        if (!reservasi) {
+            showNotification('Data reservasi tidak ditemukan', true);
+            return;
+        }
+        
         if (confirm('Hapus reservasi ini?')) {
             await deleteReservation(id, selectedDate);
             renderPage(currentPage);
@@ -945,8 +964,19 @@ document.addEventListener('click', async (e) => {
         e.stopPropagation();
         const id = target.dataset.id;
         if (!id) return;
-        const r = reservations.find(r => r.id === id);
-        if (r && confirm('Hapus data DP? Urutan DP akan dihapus dan bisa diisi ulang dengan urutan baru.')) {
+        
+        let r = reservations.find(r => r.id === id);
+        if (!r && currentPage === 'list-reservasi') {
+            await loadReservationsByDate(selectedDate);
+            r = reservations.find(r => r.id === id);
+        }
+        
+        if (!r) {
+            showNotification('Data reservasi tidak ditemukan', true);
+            return;
+        }
+        
+        if (confirm('Hapus data DP? Urutan DP akan dihapus dan bisa diisi ulang dengan urutan baru.')) {
             r.dpCheck = false;
             r.dpNominal = 0;
             r.dpJenis = '';
@@ -1095,4 +1125,4 @@ function startApp() {
     loadTablesFromFirebase().then(() => {
         renderPage('dashboard');
     });
-          }
+            }
