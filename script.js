@@ -1,18 +1,11 @@
-// Konfigurasi Firebase - GANTI DENGAN MILIK ANDA
+// ==================== KONFIGURASI FIREBASE ====================
 const firebaseConfig = {
-
-  apiKey: "AIzaSyAqb4sr3rDjuERBh2iyS6nrMbnBKZ1Pgfs",
-
-  authDomain: "reservasi-cc592.firebaseapp.com",
-
-  projectId: "reservasi-cc592",
-
-  storageBucket: "reservasi-cc592.firebasestorage.app",
-
-  messagingSenderId: "464707598627",
-
-  appId: "1:464707598627:web:3a31787cc49ed70abc3496"
-
+    apiKey: "AIzaSyAqb4sr3rDjuERBh2iyS6nrMbnBKZ1Pgfs",
+    authDomain: "reservasi-cc592.firebaseapp.com",
+    projectId: "reservasi-cc592",
+    storageBucket: "reservasi-cc592.firebasestorage.app",
+    messagingSenderId: "464707598627",
+    appId: "1:464707598627:web:3a31787cc49ed70abc3496"
 };
 
 // Inisialisasi Firebase
@@ -24,17 +17,14 @@ const auth = firebase.auth();
 let currentPage = 'dashboard';
 let tables = [];
 let reservations = [];
-let selectedDate = getTodayLocal(); // menggunakan fungsi lokal
+
+// Hitung tanggal lokal (sesuai zona waktu pengguna)
+const today = new Date();
+const offset = today.getTimezoneOffset() * 60000;
+const localDate = new Date(today.getTime() - offset);
+let selectedDate = localDate.toISOString().split('T')[0];
 
 // ==================== UTILITY FUNCTIONS ====================
-function getTodayLocal() {
-    const d = new Date();
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-}
-
 function showNotification(message, isError = false) {
     const notif = document.getElementById('notification');
     notif.textContent = message;
@@ -306,13 +296,7 @@ async function renderPage(page) {
     });
     
     if (page === 'dashboard') {
-        // Inisialisasi tombol logout yang ada di dashboard
-        const logoutBtn = document.getElementById('dashboard-logout');
-        if (logoutBtn) {
-            logoutBtn.addEventListener('click', () => {
-                auth.signOut();
-            });
-        }
+        // sudah di-render
     } else if (page === 'reservasi-baru') {
         initReservasiBaru();
     } else if (page === 'list-reservasi') {
@@ -326,8 +310,13 @@ async function renderPage(page) {
 
 // Dashboard
 async function renderDashboard() {
-    const today = getTodayLocal();
-    await loadReservationsByDate(today);
+    // Gunakan tanggal lokal untuk dashboard
+    const today = new Date();
+    const offset = today.getTimezoneOffset() * 60000;
+    const localDate = new Date(today.getTime() - offset);
+    const todayStr = localDate.toISOString().split('T')[0];
+    
+    await loadReservationsByDate(todayStr);
     const todayRes = reservations;
     const totalMeja = tables.length;
     
@@ -362,8 +351,9 @@ async function renderDashboard() {
                     <div class="stat-label">Reservasi tanpa meja</div>
                 </div>
             </div>
-            <div class="logout-container">
-                <button id="dashboard-logout" class="btn-logout">Logout</button>
+            <!-- Tombol Logout di sini -->
+            <div style="text-align: center; margin-top: 30px;">
+                <button id="logout-btn-dashboard" class="btn btn-danger">Logout</button>
             </div>
         </div>
     `;
@@ -371,14 +361,19 @@ async function renderDashboard() {
 
 // Reservasi Baru
 function renderReservasiBaru() {
-    const today = getTodayLocal();
+    // Gunakan tanggal lokal untuk min dan default
+    const today = new Date();
+    const offset = today.getTimezoneOffset() * 60000;
+    const localDate = new Date(today.getTime() - offset);
+    const todayStr = localDate.toISOString().split('T')[0];
+    
     return `
         <div class="page">
             <h2>Buat Reservasi Baru</h2>
             <form id="form-reservasi">
                 <div class="form-group">
                     <label>Tanggal Reservasi</label>
-                    <input type="date" id="tanggal" min="${today}" value="${selectedDate}" required>
+                    <input type="date" id="tanggal" min="${todayStr}" value="${selectedDate}" required>
                 </div>
                 <div class="form-group">
                     <label>Nama Tamu</label>
@@ -451,7 +446,12 @@ async function initReservasiBaru() {
     const selectedMejaDisplay = document.getElementById('selectedMejaDisplay');
     const namaInput = document.getElementById('nama');
     const tanggalInput = document.getElementById('tanggal');
-    const today = getTodayLocal();
+    
+    // Gunakan tanggal lokal untuk validasi
+    const today = new Date();
+    const offset = today.getTimezoneOffset() * 60000;
+    const localDate = new Date(today.getTime() - offset);
+    const todayStr = localDate.toISOString().split('T')[0];
     
     namaInput.addEventListener('blur', () => {
         namaInput.value = capitalizeWords(namaInput.value);
@@ -515,9 +515,9 @@ async function initReservasiBaru() {
     }
     
     tanggalInput.addEventListener('change', () => {
-        if (tanggalInput.value < today) {
+        if (tanggalInput.value < todayStr) {
             alert('Tanggal reservasi tidak boleh sebelum hari ini.');
-            tanggalInput.value = today;
+            tanggalInput.value = todayStr;
         }
         if (mejaCheck.checked) renderMejaGrid();
     });
@@ -526,9 +526,9 @@ async function initReservasiBaru() {
         e.preventDefault();
         
         const tanggal = tanggalInput.value;
-        if (tanggal < today) {
+        if (tanggal < todayStr) {
             alert('Tanggal reservasi tidak boleh sebelum hari ini.');
-            tanggalInput.value = today;
+            tanggalInput.value = todayStr;
             return;
         }
         
@@ -1002,7 +1002,7 @@ document.addEventListener('click', async (e) => {
         return;
     }
 
-    // Tombol hapus meja
+    // Tombol hapus meja di halaman Atur Meja
     if (target.classList.contains('hapus-meja-btn')) {
         e.preventDefault();
         e.stopPropagation();
@@ -1026,6 +1026,13 @@ document.addEventListener('click', async (e) => {
             await saveTableToFirebase(meja);
             renderPage('atur-meja');
         }
+        return;
+    }
+
+    // Tombol logout di dashboard
+    if (target.id === 'logout-btn-dashboard') {
+        e.preventDefault();
+        auth.signOut();
         return;
     }
 });
@@ -1088,4 +1095,4 @@ function startApp() {
     loadTablesFromFirebase().then(() => {
         renderPage('dashboard');
     });
-}
+          }
