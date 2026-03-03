@@ -57,32 +57,16 @@ function formatDate(dateString) {
     return `${day}/${month}/${year}`;
 }
 
-function saveToLocalStorage(key, data) {
-    try {
-        localStorage.setItem(key, JSON.stringify(data));
-    } catch (e) {
-        console.warn('Gagal menyimpan ke localStorage', e);
-    }
-}
-
-function loadFromLocalStorage(key) {
-    try {
-        return JSON.parse(localStorage.getItem(key)) || null;
-    } catch (e) {
-        return null;
-    }
-}
-
-// ==================== FIREBASE OPERATIONS ====================
+// ==================== FIREBASE OPERATIONS (NO LOCALSTORAGE) ====================
 async function loadTablesFromFirebase() {
     try {
         const snapshot = await db.collection('tables').get();
         tables = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         tables.sort((a, b) => a.nomorMeja.localeCompare(b.nomorMeja, undefined, { numeric: true }));
-        saveToLocalStorage('tables', tables);
     } catch (error) {
-        console.error('Gagal memuat meja dari Firebase, gunakan localStorage', error);
-        tables = loadFromLocalStorage('tables') || [];
+        console.error('Gagal memuat meja dari Firebase:', error);
+        showNotification('Gagal memuat data meja. Periksa koneksi internet.', true);
+        tables = [];
     }
     return tables;
 }
@@ -98,18 +82,8 @@ async function saveTableToFirebase(tableData) {
         await loadTablesFromFirebase();
         showNotification('Meja berhasil disimpan');
     } catch (error) {
-        showNotification('Gagal simpan meja, simpan ke localStorage', true);
-        let localTables = loadFromLocalStorage('tables') || [];
-        if (tableData.id) {
-            const index = localTables.findIndex(t => t.id === tableData.id);
-            if (index >= 0) localTables[index] = tableData;
-            else localTables.push(tableData);
-        } else {
-            tableData.id = 'local_' + Date.now();
-            localTables.push(tableData);
-        }
-        saveToLocalStorage('tables', localTables);
-        tables = localTables;
+        console.error('Gagal simpan meja:', error);
+        showNotification('Gagal simpan meja. Periksa koneksi internet.', true);
     }
 }
 
@@ -119,11 +93,8 @@ async function deleteTableFromFirebase(tableId) {
         await loadTablesFromFirebase();
         showNotification('Meja dihapus');
     } catch (error) {
-        showNotification('Gagal hapus meja, hapus dari localStorage', true);
-        let localTables = loadFromLocalStorage('tables') || [];
-        localTables = localTables.filter(t => t.id !== tableId);
-        saveToLocalStorage('tables', localTables);
-        tables = localTables;
+        console.error('Gagal hapus meja:', error);
+        showNotification('Gagal hapus meja. Periksa koneksi internet.', true);
     }
 }
 
@@ -135,10 +106,10 @@ async function loadReservationsByDate(date) {
             .get();
         reservations = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         calculateUrutanDP();
-        saveToLocalStorage(`reservations_${date}`, reservations);
     } catch (error) {
-        console.error('Gagal memuat reservasi, gunakan localStorage', error);
-        reservations = loadFromLocalStorage(`reservations_${date}`) || [];
+        console.error('Gagal memuat reservasi dari Firebase:', error);
+        showNotification('Gagal memuat data reservasi. Periksa koneksi internet.', true);
+        reservations = [];
     }
     return reservations;
 }
@@ -169,15 +140,8 @@ async function saveReservation(resData) {
         showNotification('Reservasi berhasil disimpan');
         return true;
     } catch (error) {
-        showNotification('Gagal simpan reservasi, simpan ke localStorage', true);
-        resData.id = resData.id || 'local_' + Date.now();
-        let localRes = loadFromLocalStorage(`reservations_${resData.tanggal}`) || [];
-        const index = localRes.findIndex(r => r.id === resData.id);
-        if (index >= 0) localRes[index] = resData;
-        else localRes.push(resData);
-        saveToLocalStorage(`reservations_${resData.tanggal}`, localRes);
-        reservations = localRes;
-        calculateUrutanDP();
+        console.error('Gagal simpan reservasi:', error);
+        showNotification('Gagal simpan reservasi. Periksa koneksi internet.', true);
         return false;
     }
 }
@@ -189,12 +153,8 @@ async function deleteReservation(resId, tanggal) {
         showNotification('Reservasi dihapus');
         return true;
     } catch (error) {
-        showNotification('Gagal hapus reservasi, hapus dari localStorage', true);
-        let localRes = loadFromLocalStorage(`reservations_${tanggal}`) || [];
-        localRes = localRes.filter(r => r.id !== resId);
-        saveToLocalStorage(`reservations_${tanggal}`, localRes);
-        reservations = localRes;
-        calculateUrutanDP();
+        console.error('Gagal hapus reservasi:', error);
+        showNotification('Gagal hapus reservasi. Periksa koneksi internet.', true);
         return false;
     }
 }
@@ -876,10 +836,16 @@ document.addEventListener('click', async (e) => {
         e.stopPropagation();
         const id = target.dataset.id;
         if (!id) return;
-        // Cari reservasi berdasarkan id
+        
+        // Jika reservations kosong, coba muat ulang data
+        if (reservations.length === 0) {
+            showNotification('Memuat ulang data...', false);
+            await loadReservationsByDate(selectedDate);
+        }
+        
         const reservasi = reservations.find(r => r.id === id);
         if (!reservasi) {
-            showNotification('Data reservasi tidak ditemukan', true);
+            showNotification('Data reservasi tidak ditemukan. Coba refresh halaman.', true);
             return;
         }
         
@@ -933,14 +899,11 @@ document.addEventListener('click', async (e) => {
         e.stopPropagation();
         const id = target.dataset.id;
         if (!id) return;
-        // Cari reservasi berdasarkan id untuk mendapatkan tanggal yang benar
-        const r = reservations.find(r => r.id === id);
-        if (!r) {
-            showNotification('Data reservasi tidak ditemukan', true);
-            return;
-        }
+        
         if (confirm('Hapus reservasi ini?')) {
-            await deleteReservation(id, r.tanggal); // Gunakan tanggal dari reservasi
+            await deleteReservation(id, selectedDate);
+            // Muat ulang data setelah hapus
+            await loadReservationsByDate(selectedDate);
             renderPage(currentPage);
         }
         return;
@@ -1102,4 +1065,4 @@ function startApp() {
     loadTablesFromFirebase().then(() => {
         renderPage('dashboard');
     });
-}
+            }
