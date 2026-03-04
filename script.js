@@ -17,7 +17,17 @@ const db = firebase.firestore();
 let currentUser = null;
 let currentPage = 'dashboard';
 let editingReservationId = null;
-let selectedDate = new Date().toISOString().split('T')[0];
+
+// PERBAIKAN: Menggunakan fungsi getLocalDate untuk tanggal default
+function getLocalDate() {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+let selectedDate = getLocalDate(); // default tanggal lokal hari ini
 let reservationsCache = [];
 let tablesCache = [];
 
@@ -86,7 +96,6 @@ function renderApp() {
             </div>
         `;
         
-        // Event listener untuk toggle password
         document.getElementById('toggle-password').addEventListener('click', function() {
             const passwordInput = document.getElementById('login-password');
             const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
@@ -96,7 +105,6 @@ function renderApp() {
         
         document.getElementById('login-btn').addEventListener('click', login);
     } else {
-        // Tampilkan konten utama (navbar + halaman)
         app.innerHTML = `
             <h1>Reservasi Bukber</h1>
             <nav>
@@ -108,14 +116,12 @@ function renderApp() {
             </nav>
             <div id="content"></div>
         `;
-        // Pasang event listener navigasi
         document.querySelectorAll('nav button').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 currentPage = e.target.dataset.page;
                 renderPage(currentPage);
             });
         });
-        // Render halaman saat ini
         renderPage(currentPage);
     }
 }
@@ -148,7 +154,8 @@ async function renderPage(page) {
 // ==================== DASHBOARD ====================
 async function renderDashboard(container) {
     try {
-        const today = new Date().toISOString().split('T')[0];
+        // PERBAIKAN: gunakan getLocalDate()
+        const today = getLocalDate();
         const reservationsSnap = await db.collection('reservations').where('tanggal', '==', today).get();
         const reservations = [];
         reservationsSnap.forEach(doc => reservations.push({ id: doc.id, ...doc.data() }));
@@ -225,7 +232,8 @@ async function renderReservasiForm(container, editId = null) {
             }
         }
 
-        const today = new Date().toISOString().split('T')[0];
+        // PERBAIKAN: gunakan getLocalDate()
+        const today = getLocalDate();
         const tanggalValue = editData ? editData.tanggal : today;
 
         container.innerHTML = `
@@ -305,8 +313,9 @@ async function renderReservasiForm(container, editId = null) {
             </form>
         `;
 
+        // PERBAIKAN: gunakan perbandingan string untuk tanggal
         document.getElementById('tanggal').addEventListener('change', async (e) => {
-            if (new Date(e.target.value) < new Date(today)) {
+            if (e.target.value < today) {
                 showNotification('Tidak boleh memilih tanggal lalu', false);
                 document.getElementById('tanggal').value = today;
             }
