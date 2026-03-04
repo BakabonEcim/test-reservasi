@@ -136,6 +136,24 @@ nav button:hover {
     margin-right: 10px;
 }
 
+/* Tombol submit reservasi lebih besar */
+#reservasi-form button[type="submit"] {
+    padding: 15px 30px;
+    font-size: 18px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    width: 100%;
+    margin-top: 10px;
+    font-weight: bold;
+}
+
+#reservasi-form button[type="submit"]:hover {
+    background-color: #45a049;
+}
+
 /* Grid meja */
 .meja-grid {
     display: grid;
@@ -204,7 +222,7 @@ tr:hover {
     cursor: pointer;
 }
 
-/* Badge status */
+/* Badge status - warna kontras */
 .status-badge {
     display: inline-block;
     padding: 3px 8px;
@@ -215,9 +233,9 @@ tr:hover {
 }
 
 .status-lengkap { background-color: #4CAF50; }
-.status-belum-meja { background-color: #FF9800; }
-.status-belum-dp { background-color: #f44336; }
-.status-belum-meja-dp { background-color: #9C27B0; }
+.status-belum-meja { background-color: #FF9800; } /* oranye */
+.status-belum-dp { background-color: #f44336; }   /* merah */
+.status-belum-meja-dp { background-color: #9C27B0; } /* ungu */
 
 /* Tombol aksi */
 .btn-edit, .btn-hapus, .btn-hapus-dp {
