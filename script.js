@@ -57,12 +57,13 @@ function formatDate(dateString) {
     return `${day}/${month}/${year}`;
 }
 
-// ==================== FIREBASE OPERATIONS (NO LOCALSTORAGE) ====================
+// ==================== FIREBASE OPERATIONS ====================
 async function loadTablesFromFirebase() {
     try {
         const snapshot = await db.collection('tables').get();
         tables = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         tables.sort((a, b) => a.nomorMeja.localeCompare(b.nomorMeja, undefined, { numeric: true }));
+        console.log('📋 Meja dimuat:', tables.length);
     } catch (error) {
         console.error('Gagal memuat meja dari Firebase:', error);
         showNotification('Gagal memuat data meja. Periksa koneksi internet.', true);
@@ -101,11 +102,15 @@ async function deleteTableFromFirebase(tableId) {
 // Reservasi
 async function loadReservationsByDate(date) {
     try {
+        console.log('🔄 Memuat reservasi untuk tanggal:', date);
         const snapshot = await db.collection('reservations')
             .where('tanggal', '==', date)
             .get();
-        reservations = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        reservations = snapshot.docs.map(doc => {
+            return { id: doc.id, ...doc.data() };
+        });
         calculateUrutanDP();
+        console.log(`📥 ${reservations.length} reservasi dimuat. ID:`, reservations.map(r => r.id));
     } catch (error) {
         console.error('Gagal memuat reservasi dari Firebase:', error);
         showNotification('Gagal memuat data reservasi. Periksa koneksi internet.', true);
@@ -130,11 +135,14 @@ async function saveReservation(resData) {
         }
 
         if (resData.id) {
+            console.log('✏️ Mengupdate reservasi ID:', resData.id);
             await db.collection('reservations').doc(resData.id).set(resData, { merge: true });
         } else {
+            console.log('➕ Menambah reservasi baru');
             resData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
             const docRef = await db.collection('reservations').add(resData);
             resData.id = docRef.id;
+            console.log('✅ ID baru:', resData.id);
         }
         await loadReservationsByDate(resData.tanggal);
         showNotification('Reservasi berhasil disimpan');
@@ -148,6 +156,7 @@ async function saveReservation(resData) {
 
 async function deleteReservation(resId, tanggal) {
     try {
+        console.log('🗑️ Menghapus reservasi ID:', resId);
         await db.collection('reservations').doc(resId).delete();
         await loadReservationsByDate(tanggal);
         showNotification('Reservasi dihapus');
@@ -189,6 +198,7 @@ function getStatusKelengkapan(r) {
 }
 
 function showReservationDetailModal(r) {
+    console.log('📋 Menampilkan detail untuk ID:', r.id);
     let dpInfo = 'Tidak ada';
     let dpActions = '';
     if (r.dpCheck && r.dpNominal > 0 && r.dpTimestamp) {
@@ -558,6 +568,7 @@ function renderListReservasi() {
                 <div class="flex">
                     <input type="date" id="filterTanggal" value="${selectedDate}">
                     <button class="btn btn-primary" id="muatReservasi">Muat</button>
+                    <button class="btn btn-warning" id="refreshList">Refresh</button>
                 </div>
                 <div class="flex">
                     <select id="sortBy">
@@ -575,6 +586,7 @@ function renderListReservasi() {
 async function initListReservasi() {
     const tanggalInput = document.getElementById('filterTanggal');
     const muatBtn = document.getElementById('muatReservasi');
+    const refreshBtn = document.getElementById('refreshList');
     const sortBySelect = document.getElementById('sortBy');
     
     async function loadAndDisplay() {
@@ -582,6 +594,7 @@ async function initListReservasi() {
         await loadReservationsByDate(selectedDate);
         sortReservations();
         displayTable();
+        console.log('📊 Tabel ditampilkan, reservations:', reservations.length);
     }
     
     function sortReservations() {
@@ -641,6 +654,7 @@ async function initListReservasi() {
     }
     
     muatBtn.addEventListener('click', loadAndDisplay);
+    refreshBtn.addEventListener('click', loadAndDisplay);
     sortBySelect.addEventListener('change', () => {
         sortReservations();
         displayTable();
@@ -835,7 +849,13 @@ document.addEventListener('click', async (e) => {
         e.preventDefault();
         e.stopPropagation();
         const id = target.dataset.id;
-        if (!id) return;
+        console.log('🔍 Edit clicked, ID dari tombol:', id);
+        console.log('📋 Daftar ID di reservations:', reservations.map(r => r.id));
+        
+        if (!id) {
+            showNotification('ID tidak ditemukan pada tombol', true);
+            return;
+        }
         
         // Jika reservations kosong, coba muat ulang data
         if (reservations.length === 0) {
@@ -845,7 +865,7 @@ document.addEventListener('click', async (e) => {
         
         const reservasi = reservations.find(r => r.id === id);
         if (!reservasi) {
-            showNotification('Data reservasi tidak ditemukan. Coba refresh halaman.', true);
+            showNotification(`Data reservasi dengan ID ${id} tidak ditemukan. Coba refresh halaman.`, true);
             return;
         }
         
@@ -898,6 +918,8 @@ document.addEventListener('click', async (e) => {
         e.preventDefault();
         e.stopPropagation();
         const id = target.dataset.id;
+        console.log('🗑️ Hapus clicked, ID:', id);
+        
         if (!id) return;
         
         if (confirm('Hapus reservasi ini?')) {
@@ -933,8 +955,15 @@ document.addEventListener('click', async (e) => {
     const row = target.closest('tr[data-id]');
     if (row && currentPage === 'list-reservasi') {
         const id = row.dataset.id;
+        console.log('👆 Baris diklik, ID:', id);
         const r = reservations.find(r => r.id === id);
-        if (r) showReservationDetailModal(r);
+        if (r) {
+            showReservationDetailModal(r);
+        } else {
+            console.log('❌ Reservasi tidak ditemukan di array. ID:', id);
+            console.log('📋 ID yang ada:', reservations.map(r => r.id));
+            showNotification('Data tidak ditemukan, coba refresh', true);
+        }
         return;
     }
 
@@ -1065,4 +1094,4 @@ function startApp() {
     loadTablesFromFirebase().then(() => {
         renderPage('dashboard');
     });
-            }
+                               }
