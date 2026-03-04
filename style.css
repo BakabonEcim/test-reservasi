@@ -164,7 +164,7 @@ nav button:hover {
 }
 
 .meja-item {
-    border: 2px solid #4CAF50; /* warna dasar, akan diubah per area via JS */
+    border: 2px solid #4CAF50;
     padding: 10px;
     text-align: center;
     border-radius: 5px;
@@ -187,13 +187,13 @@ nav button:hover {
 
 /* Area styling */
 .area-non .meja-item {
-    border-color: #2196F3; /* biru */
+    border-color: #2196F3;
 }
 .area-smoking .meja-item {
-    border-color: #FF9800; /* oranye */
+    border-color: #FF9800;
 }
 .area-tambahan .meja-item {
-    border-color: #9C27B0; /* ungu */
+    border-color: #9C27B0;
 }
 
 /* Tabel responsif */
@@ -223,20 +223,29 @@ tr:hover {
     cursor: pointer;
 }
 
-/* Badge status - warna kontras */
+/* Status badge - warna kontras */
 .status-badge {
     display: inline-block;
-    padding: 3px 8px;
+    padding: 4px 10px;
     border-radius: 12px;
     font-size: 12px;
     font-weight: bold;
     color: white;
+    text-shadow: 0 1px 1px rgba(0,0,0,0.2);
 }
 
-.status-lengkap { background-color: #4CAF50; }
-.status-belum-meja { background-color: #FF9800; } /* oranye */
-.status-belum-dp { background-color: #f44336; }   /* merah */
-.status-belum-meja-dp { background-color: #9C27B0; } /* ungu */
+.status-lengkap { 
+    background-color: #2e7d32;
+}
+.status-belum-meja { 
+    background-color: #e65100;
+}
+.status-belum-dp { 
+    background-color: #c62828;
+}
+.status-belum-meja-dp { 
+    background-color: #6a1b9a;
+}
 
 /* Tombol aksi */
 .btn-edit, .btn-hapus, .btn-hapus-dp {
@@ -307,6 +316,105 @@ tr:hover {
     display: block;
 }
 
+/* ===== STYLE UNTUK HALAMAN LOGIN ===== */
+#login-form {
+    max-width: 400px;
+    margin: 50px auto;
+    padding: 30px;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+#login-form h2 {
+    text-align: center;
+    margin-bottom: 25px;
+    color: #4CAF50;
+}
+
+#login-form .form-group {
+    margin-bottom: 20px;
+}
+
+#login-form label {
+    font-weight: 600;
+    margin-bottom: 8px;
+    display: block;
+    color: #555;
+}
+
+#login-form input {
+    width: 100%;
+    padding: 12px 15px;
+    border: 2px solid #e0e0e0;
+    border-radius: 6px;
+    font-size: 16px;
+    transition: border-color 0.3s;
+}
+
+#login-form input:focus {
+    border-color: #4CAF50;
+    outline: none;
+}
+
+/* Container untuk password dengan toggle */
+.password-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.password-container input {
+    flex: 1;
+    padding-right: 45px;
+}
+
+.toggle-password {
+    position: absolute;
+    right: 12px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 20px;
+    color: #777;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.3s;
+}
+
+.toggle-password:hover {
+    color: #4CAF50;
+}
+
+#login-btn {
+    width: 100%;
+    padding: 14px;
+    background: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.3s;
+    margin-top: 10px;
+}
+
+#login-btn:hover {
+    background: #45a049;
+}
+
+.login-hint {
+    text-align: center;
+    margin-top: 20px;
+    color: #888;
+    font-size: 14px;
+}
+
 /* Responsif untuk layar kecil */
 @media (max-width: 600px) {
     nav {
@@ -322,5 +430,9 @@ tr:hover {
     .modal-content {
         width: 95%;
         margin: 20% auto;
+    }
+    #login-form {
+        margin: 20px auto;
+        padding: 20px;
     }
 }
