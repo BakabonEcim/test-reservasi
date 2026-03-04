@@ -16,10 +16,10 @@ const db = firebase.firestore();
 // ==================== GLOBAL VARIABLES ====================
 let currentUser = null;
 let currentPage = 'dashboard';
-let editingReservationId = null; // untuk mode edit
-let selectedDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD lokal
-let reservationsCache = []; // untuk menyimpan data reservasi terakhir dimuat (per tanggal)
-let tablesCache = []; // untuk menyimpan data meja
+let editingReservationId = null;
+let selectedDate = new Date().toISOString().split('T')[0];
+let reservationsCache = [];
+let tablesCache = [];
 
 // ==================== UTILITY FUNCTIONS ====================
 function showNotification(message, isSuccess = true) {
@@ -55,7 +55,6 @@ function hideModal() {
     document.getElementById('modal').style.display = 'none';
 }
 
-// Format tanggal untuk tampilan (dd/mm/yyyy)
 function formatDateDisplay(isoDate) {
     if (!isoDate) return '';
     const [y, m, d] = isoDate.split('-');
@@ -66,22 +65,35 @@ function formatDateDisplay(isoDate) {
 function renderApp() {
     const app = document.getElementById('app');
     if (!currentUser) {
-        // Tampilkan halaman login
+        // Tampilkan halaman login dengan fitur show/hide password
         app.innerHTML = `
             <h1>Reservasi Bukber</h1>
             <div id="login-form">
                 <h2>Login Staf</h2>
                 <div class="form-group">
                     <label>Email</label>
-                    <input type="email" id="login-email" required>
+                    <input type="email" id="login-email" placeholder="contoh: staf@restoran.com" required>
                 </div>
                 <div class="form-group">
                     <label>Password</label>
-                    <input type="password" id="login-password" required>
+                    <div class="password-container">
+                        <input type="password" id="login-password" placeholder="Masukkan password" required>
+                        <button type="button" class="toggle-password" id="toggle-password">👁️</button>
+                    </div>
                 </div>
                 <button id="login-btn">Login</button>
+                <div class="login-hint">Gunakan akun staf yang telah didaftarkan</div>
             </div>
         `;
+        
+        // Event listener untuk toggle password
+        document.getElementById('toggle-password').addEventListener('click', function() {
+            const passwordInput = document.getElementById('login-password');
+            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordInput.setAttribute('type', type);
+            this.textContent = type === 'password' ? '👁️' : '👁️‍🗨️';
+        });
+        
         document.getElementById('login-btn').addEventListener('click', login);
     } else {
         // Tampilkan konten utama (navbar + halaman)
@@ -137,16 +149,13 @@ async function renderPage(page) {
 async function renderDashboard(container) {
     try {
         const today = new Date().toISOString().split('T')[0];
-        // Ambil reservasi hari ini
         const reservationsSnap = await db.collection('reservations').where('tanggal', '==', today).get();
         const reservations = [];
         reservationsSnap.forEach(doc => reservations.push({ id: doc.id, ...doc.data() }));
 
-        // Ambil semua meja
         const tablesSnap = await db.collection('tables').get();
         const totalMeja = tablesSnap.size;
 
-        // Hitung statistik
         const reservasiHariIni = reservations.length;
         const mejaTerpakai = new Set();
         reservations.forEach(r => {
@@ -158,8 +167,6 @@ async function renderDashboard(container) {
 
         const reservasiBelumDP = reservations.filter(r => r.dpCheck === false && r.nomorMeja && r.nomorMeja.length > 0).length;
         const reservasiTanpaMeja = reservations.filter(r => !r.nomorMeja || r.nomorMeja.length === 0).length;
-
-        // Hitung total tamu
         const totalTamu = reservations.reduce((sum, r) => sum + (r.jumlahTamu || 0), 0);
 
         container.innerHTML = `
@@ -196,19 +203,17 @@ async function renderDashboard(container) {
 
 // ==================== RESERVASI BARU / EDIT ====================
 async function renderReservasiBaru(container) {
-    editingReservationId = null; // reset mode edit
+    editingReservationId = null;
     await renderReservasiForm(container);
 }
 
 async function renderReservasiForm(container, editId = null) {
     try {
-        // Ambil data meja dari Firestore
         const tablesSnap = await db.collection('tables').get();
         const tables = [];
         tablesSnap.forEach(doc => tables.push({ id: doc.id, ...doc.data() }));
         tablesCache = tables;
 
-        // Jika edit, ambil data reservasi
         let editData = null;
         if (editId) {
             const doc = await db.collection('reservations').doc(editId).get();
@@ -263,8 +268,8 @@ async function renderReservasiForm(container, editId = null) {
                     </label>
                     <div id="meja-selection" style="display: ${editData && editData.nomorMeja && editData.nomorMeja.length > 0 ? 'block' : 'none'};">
                         <p>Pilih meja (bisa lebih dari satu):</p>
+                        <p><strong>Meja terpilih:</strong> <span id="selected-meja-text">${editData && editData.nomorMeja ? editData.nomorMeja.join(', ') : ''}</span></p>
                         <div id="meja-grid"></div>
-                        <p>Meja terpilih: <span id="selected-meja-text">${editData && editData.nomorMeja ? editData.nomorMeja.join(', ') : ''}</span></p>
                     </div>
                 </div>
 
@@ -300,13 +305,11 @@ async function renderReservasiForm(container, editId = null) {
             </form>
         `;
 
-        // Event listeners
         document.getElementById('tanggal').addEventListener('change', async (e) => {
             if (new Date(e.target.value) < new Date(today)) {
                 showNotification('Tidak boleh memilih tanggal lalu', false);
                 document.getElementById('tanggal').value = today;
             }
-            // Jika tanggal berubah, refresh grid meja
             if (document.getElementById('sudahAdaMeja').checked) {
                 await renderMejaGrid(editData ? editData.nomorMeja : [], editingReservationId);
             }
@@ -340,10 +343,8 @@ async function renderReservasiForm(container, editId = null) {
             }
         });
 
-        // Submit form
         document.getElementById('reservasi-form').addEventListener('submit', handleReservasiSubmit);
 
-        // Render grid meja jika checkbox sudah dicentang
         if (document.getElementById('sudahAdaMeja').checked) {
             await renderMejaGrid(editData ? editData.nomorMeja : [], editingReservationId);
         }
@@ -362,18 +363,16 @@ async function renderMejaGrid(selectedMeja = [], excludeReservationId = null) {
     if (!tanggal) return;
 
     try {
-        // Ambil reservasi untuk tanggal yang dipilih, kecuali yang sedang diedit
         const reservationsSnap = await db.collection('reservations').where('tanggal', '==', tanggal).get();
         const occupiedMeja = new Set();
         reservationsSnap.forEach(doc => {
-            if (excludeReservationId && doc.id === excludeReservationId) return; // lewati reservasi ini
+            if (excludeReservationId && doc.id === excludeReservationId) return;
             const data = doc.data();
             if (data.nomorMeja && Array.isArray(data.nomorMeja)) {
                 data.nomorMeja.forEach(no => occupiedMeja.add(no));
             }
         });
 
-        // Kelompokkan meja berdasarkan area
         const tables = tablesCache;
         const mejaByArea = { non: [], smoking: [], tambahan: [] };
         tables.forEach(t => {
@@ -396,7 +395,6 @@ async function renderMejaGrid(selectedMeja = [], excludeReservationId = null) {
         }
         gridContainer.innerHTML = html;
 
-        // Event listener untuk memilih meja
         document.querySelectorAll('#meja-grid .meja-item:not(.occupied)').forEach(item => {
             item.addEventListener('click', function() {
                 this.classList.toggle('selected');
@@ -436,19 +434,16 @@ async function handleReservasiSubmit(e) {
         const dpNominal = adaDP ? parseRupiah(document.getElementById('dpNominal').value) : 0;
         const catatan = document.getElementById('catatan').value;
 
-        // Validasi
         if (!nama || !jumlahTamu || !noHp) {
             showNotification('Harap isi semua field wajib', false);
             return;
         }
 
-        // Hitung status kelengkapan
         let statusKelengkapan = 'Lengkap';
         if (nomorMeja.length === 0 && !adaDP) statusKelengkapan = 'Belum ada Meja & DP';
         else if (nomorMeja.length === 0) statusKelengkapan = 'Belum ada Meja';
         else if (!adaDP) statusKelengkapan = 'Belum ada DP';
 
-        // Siapkan data reservasi
         const reservationData = {
             tanggal,
             nama,
@@ -465,18 +460,14 @@ async function handleReservasiSubmit(e) {
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         };
 
-        // Jika ada DP dan belum ada dpTimestamp (reservasi baru atau sebelumnya tidak punya DP), set dpTimestamp
         if (adaDP) {
             if (!id) {
-                // reservasi baru
                 reservationData.dpTimestamp = firebase.firestore.FieldValue.serverTimestamp();
             } else {
-                // edit, cek apakah sebelumnya tidak punya DP
                 const oldDoc = await db.collection('reservations').doc(id).get();
                 if (oldDoc.exists && !oldDoc.data().dpCheck) {
                     reservationData.dpTimestamp = firebase.firestore.FieldValue.serverTimestamp();
                 } else {
-                    // pertahankan timestamp lama
                     reservationData.dpTimestamp = oldDoc.data().dpTimestamp || null;
                 }
             }
@@ -485,16 +476,13 @@ async function handleReservasiSubmit(e) {
         }
 
         if (id) {
-            // Update
             await db.collection('reservations').doc(id).update(reservationData);
             showNotification('Reservasi berhasil diperbarui');
         } else {
-            // Tambah baru
             await db.collection('reservations').add(reservationData);
             showNotification('Reservasi berhasil disimpan');
         }
 
-        // Kembali ke dashboard
         currentPage = 'dashboard';
         renderPage('dashboard');
     } catch (error) {
@@ -549,11 +537,7 @@ async function loadReservasiTable() {
         snapshot.forEach(doc => reservations.push({ id: doc.id, ...doc.data() }));
         reservationsCache = reservations;
 
-        console.log(`Memuat ${reservations.length} reservasi untuk tanggal ${tanggal}:`, reservations.map(r => r.id));
-
-        // Urutkan berdasarkan pilihan
         if (sortBy === 'dp') {
-            // Reservasi dengan DP diurutkan berdasarkan dpTimestamp, yang tanpa DP di akhir
             reservations.sort((a, b) => {
                 if (a.dpCheck && b.dpCheck) {
                     return (a.dpTimestamp?.seconds || 0) - (b.dpTimestamp?.seconds || 0);
@@ -571,7 +555,6 @@ async function loadReservasiTable() {
             reservations.sort((a, b) => a.statusKelengkapan.localeCompare(b.statusKelengkapan));
         }
 
-        // Hitung urutan DP (hanya untuk yang memiliki DP)
         let dpCounter = 1;
         const dpMap = new Map();
         reservations.forEach(r => {
@@ -580,12 +563,10 @@ async function loadReservasiTable() {
             }
         });
 
-        // Render tabel
         let html = '<div class="table-responsive"><table><thead><tr><th>Meja</th><th>Nama</th><th>Tamu</th><th>Urutan DP</th><th>Status</th><th>Aksi</th></tr></thead><tbody>';
         reservations.forEach(r => {
             const meja = r.nomorMeja && r.nomorMeja.length ? r.nomorMeja.join(', ') : '-';
             const urutanDP = r.dpCheck && dpMap.has(r.id) ? dpMap.get(r.id) : '-';
-            // Map status ke class CSS (hapus spasi)
             const statusClass = r.statusKelengkapan?.toLowerCase().replace(/ /g, '-') || '';
             html += `<tr data-id="${r.id}">
                 <td>${meja}</td>
@@ -603,28 +584,22 @@ async function loadReservasiTable() {
 
         container.innerHTML = html;
 
-        // Event listener untuk baris (klik untuk detail)
         document.querySelectorAll('#reservasi-table-container tbody tr').forEach(tr => {
             tr.addEventListener('click', (e) => {
-                // Jangan buka detail jika yang diklik adalah tombol
                 if (e.target.tagName === 'BUTTON') return;
                 const id = tr.dataset.id;
-                console.log('Baris diklik, ID:', id);
                 showDetailReservasi(id);
             });
         });
 
-        // Event listener untuk tombol edit
         document.querySelectorAll('.btn-edit').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const id = btn.dataset.id;
-                console.log('Tombol edit diklik, ID:', id);
                 editReservasi(id);
             });
         });
 
-        // Event listener untuk tombol hapus
         document.querySelectorAll('.btn-hapus').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -673,7 +648,6 @@ async function showDetailReservasi(id) {
         `;
         showModal(content);
 
-        // Pasang event listener di dalam modal
         document.querySelector('.modal .btn-edit')?.addEventListener('click', () => {
             hideModal();
             editReservasi(data.id);
@@ -688,7 +662,7 @@ async function showDetailReservasi(id) {
             if (confirm('Hapus DP? Timestamp DP akan dihapus dan urutan DP berubah.')) {
                 await hapusDP(data.id);
                 hideModal();
-                loadReservasiTable(); // refresh tabel
+                loadReservasiTable();
             }
         });
 
@@ -699,7 +673,6 @@ async function showDetailReservasi(id) {
 }
 
 async function editReservasi(id) {
-    console.log('Mengedit ID:', id);
     const content = document.getElementById('content');
     await renderReservasiForm(content, id);
 }
@@ -708,7 +681,7 @@ async function hapusReservasi(id) {
     try {
         await db.collection('reservations').doc(id).delete();
         showNotification('Reservasi dihapus');
-        loadReservasiTable(); // refresh
+        loadReservasiTable();
     } catch (error) {
         console.error('Error deleting:', error);
         showNotification('Gagal menghapus', false);
@@ -722,7 +695,7 @@ async function hapusDP(id) {
             dpJenis: '',
             dpNominal: 0,
             dpTimestamp: null,
-            statusKelengkapan: 'Belum ada DP' // asumsi ada meja, sesuaikan
+            statusKelengkapan: 'Belum ada DP'
         });
         showNotification('DP berhasil dihapus');
     } catch (error) {
@@ -756,12 +729,10 @@ async function loadCekMeja() {
     const tanggal = selectedDate;
 
     try {
-        // Ambil semua meja
         const tablesSnap = await db.collection('tables').get();
         const tables = [];
         tablesSnap.forEach(doc => tables.push({ id: doc.id, ...doc.data() }));
 
-        // Ambil reservasi tanggal tersebut
         const reservationsSnap = await db.collection('reservations').where('tanggal', '==', tanggal).get();
         const occupiedMeja = new Set();
         reservationsSnap.forEach(doc => {
@@ -771,7 +742,6 @@ async function loadCekMeja() {
             }
         });
 
-        // Kelompokkan per area
         const mejaByArea = { non: [], smoking: [], tambahan: [] };
         tables.forEach(t => {
             const area = t.area || 'non';
@@ -786,40 +756,34 @@ async function loadCekMeja() {
             html += `<div class="area-${area}"><strong>${areaLabel}</strong><div class="meja-grid">`;
             mejaByArea[area].sort().forEach(nomor => {
                 const isOccupied = occupiedMeja.has(nomor);
-                const bgColor = isOccupied ? '#666' : '#4CAF50'; // abu-abu gelap vs hijau
+                const bgColor = isOccupied ? '#666' : '#4CAF50';
                 html += `<div class="meja-item" data-nomor="${nomor}" data-area="${area}" style="background-color: ${bgColor}; color: white; border: none; opacity: 1; pointer-events: all;">${nomor}</div>`;
             });
             html += '</div></div>';
         }
         container.innerHTML = html;
 
-        // Event listener klik meja
         document.querySelectorAll('#meja-grid-container .meja-item').forEach(item => {
             item.addEventListener('click', async () => {
                 const nomor = item.dataset.nomor;
-                const isOccupied = item.style.backgroundColor === 'rgb(102, 102, 102)'; // abu-abu gelap
+                const isOccupied = item.style.backgroundColor === 'rgb(102, 102, 102)';
                 if (isOccupied) {
-                    // Cari reservasi yang menggunakan meja ini pada tanggal ini
                     const reservationsSnap = await db.collection('reservations')
                         .where('tanggal', '==', tanggal)
                         .where('nomorMeja', 'array-contains', nomor)
                         .get();
                     if (!reservationsSnap.empty) {
-                        const doc = reservationsSnap.docs[0]; // ambil yang pertama
+                        const doc = reservationsSnap.docs[0];
                         showDetailReservasi(doc.id);
                     } else {
                         showNotification('Data reservasi tidak ditemukan', false);
                     }
                 } else {
-                    // Meja kosong, tawarkan buat reservasi baru
                     if (confirm(`Buat reservasi baru dengan meja ${nomor}?`)) {
-                        // Arahkan ke form reservasi baru dengan meja terpilih
                         currentPage = 'reservasi-baru';
                         await renderPage('reservasi-baru');
-                        // Set checkbox meja dan pilih meja
                         document.getElementById('sudahAdaMeja').checked = true;
                         document.getElementById('meja-selection').style.display = 'block';
-                        // Tunggu grid meja terender
                         setTimeout(() => {
                             const mejaItem = document.querySelector(`#meja-grid .meja-item[data-nomor="${nomor}"]`);
                             if (mejaItem) {
@@ -906,7 +870,6 @@ async function loadMejaList() {
         html += '</tbody></table></div>';
         container.innerHTML = html;
 
-        // Event listener untuk perubahan area
         document.querySelectorAll('.area-select').forEach(select => {
             select.addEventListener('change', async (e) => {
                 const id = e.target.dataset.id;
@@ -921,7 +884,6 @@ async function loadMejaList() {
             });
         });
 
-        // Event listener untuk hapus
         document.querySelectorAll('.btn-hapus').forEach(btn => {
             btn.addEventListener('click', async (e) => {
                 const id = btn.dataset.id;
@@ -929,7 +891,7 @@ async function loadMejaList() {
                     try {
                         await db.collection('tables').doc(id).delete();
                         showNotification('Meja dihapus');
-                        loadMejaList(); // refresh
+                        loadMejaList();
                     } catch (error) {
                         console.error('Error deleting table:', error);
                         showNotification('Gagal menghapus', false);
@@ -952,7 +914,6 @@ async function tambahMeja() {
         return;
     }
     try {
-        // Cek duplikat
         const existing = await db.collection('tables').where('nomorMeja', '==', nomor).get();
         if (!existing.empty) {
             showNotification('Nomor meja sudah ada', false);
@@ -961,7 +922,7 @@ async function tambahMeja() {
         await db.collection('tables').add({ nomorMeja: nomor, area });
         showNotification('Meja ditambahkan');
         hideModal();
-        loadMejaList(); // refresh
+        loadMejaList();
     } catch (error) {
         console.error('Error adding table:', error);
         showNotification('Gagal menambah meja', false);
@@ -992,7 +953,6 @@ async function importMejaCSV() {
             continue;
         }
         try {
-            // Cek duplikat
             const existing = await db.collection('tables').where('nomorMeja', '==', nomor).get();
             if (existing.empty) {
                 await db.collection('tables').add({ nomorMeja: nomor, area });
@@ -1038,7 +998,7 @@ auth.onAuthStateChanged(user => {
     renderApp();
 });
 
-// ==================== EVENT DELEGATION GLOBAL (untuk menutup modal) ====================
+// ==================== EVENT DELEGATION GLOBAL ====================
 window.onclick = function(event) {
     const modal = document.getElementById('modal');
     if (event.target === modal) {
