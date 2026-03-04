@@ -245,7 +245,7 @@ async function renderReservasiForm(container, editId = null) {
 
                 <div class="form-group">
                     <label>Nomor HP</label>
-                    <input type="text" id="noHp" value="${editData ? editData.noHp : ''}" required inputmode="numeric" pattern="[0-9]*">
+                    <input type="tel" id="noHp" value="${editData ? editData.noHp : ''}" required inputmode="numeric">
                 </div>
 
                 <div class="form-group">
@@ -287,7 +287,7 @@ async function renderReservasiForm(container, editId = null) {
                             <option value="cash" ${editData && editData.dpJenis === 'cash' ? 'selected' : ''}>Cash</option>
                         </select>
                         <label>Nominal DP:</label>
-                        <input type="text" id="dpNominal" value="${editData && editData.dpNominal ? formatRupiah(editData.dpNominal) : ''}" placeholder="Contoh: 50000" inputmode="numeric" pattern="[0-9]*">
+                        <input type="text" id="dpNominal" value="${editData && editData.dpNominal ? formatRupiah(editData.dpNominal) : ''}" placeholder="Contoh: 50000" inputmode="numeric">
                     </div>
                 </div>
 
