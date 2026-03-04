@@ -1,4 +1,3 @@
-/* Reset & dasar */
 * {
     box-sizing: border-box;
     margin: 0;
@@ -7,7 +6,7 @@
 
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: #f5f5f5;
+    background-color: #f5f5f5;
     color: #333;
     line-height: 1.6;
 }
@@ -15,233 +14,198 @@ body {
 #app {
     max-width: 1200px;
     margin: 0 auto;
-    padding: 10px;
+    padding: 20px;
 }
 
-/* Judul - di tengah dengan margin lega */
-.app-title {
-    font-size: 2rem;
-    color: #4CAF50;
-    margin: 40px 0 20px 0;  /* margin atas 40px */
+/* Judul */
+h1 {
     text-align: center;
-    border-bottom: 2px solid #4CAF50;
-    padding-bottom: 10px;
+    margin: 40px 0 20px;
+    color: #4CAF50;
 }
 
 /* Navigasi */
-.navbar {
+nav {
     display: flex;
     flex-wrap: wrap;
-    gap: 5px;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 30px;
     background: white;
-    padding: 10px;
+    padding: 15px;
     border-radius: 8px;
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    margin-bottom: 20px;
-    align-items: center;
 }
 
-.nav-btn {
-    flex: 1 1 auto;
-    padding: 12px 5px;
-    border: none;
-    background: #e0e0e0;
-    border-radius: 5px;
-    font-size: 14px;
-    font-weight: bold;
-    cursor: pointer;
-    transition: background 0.3s;
-    min-width: 70px;
-}
-
-.nav-btn.active {
+nav button {
     background: #4CAF50;
     color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background 0.3s;
+    min-width: 120px;
 }
 
-.nav-btn:hover {
-    background: #ccc;
+nav button:hover {
+    background: #45a049;
 }
 
-/* Konten halaman */
-.page {
+/* Konten utama */
+#content {
     background: white;
     padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    margin-bottom: 20px;
-}
-
-.hidden {
-    display: none !important;
-}
-
-/* Login page */
-.login-container {
-    max-width: 400px;
-    margin: 50px auto;
-    padding: 30px;
-    background: white;
     border-radius: 8px;
     box-shadow: 0 2px 10px rgba(0,0,0,0.1);
 }
 
-.login-container h2 {
-    text-align: center;
-    margin-bottom: 20px;
-    color: #4CAF50;
-}
-
-/* Dashboard stats */
-.stats-container {
+/* Dashboard cards */
+.dashboard-cards {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 20px;
-    margin-top: 20px;
+    margin-bottom: 30px;
 }
 
-.stat-box {
-    background: #f9f9f9;
+.card {
+    background: #fff;
+    border: 1px solid #ddd;
     border-radius: 8px;
     padding: 20px;
     text-align: center;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    border-left: 5px solid #4CAF50;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
 }
 
-.stat-box .stat-value {
-    font-size: 2.5rem;
+.card h3 {
+    font-size: 16px;
+    color: #666;
+    margin-bottom: 10px;
+}
+
+.card .value {
+    font-size: 32px;
     font-weight: bold;
     color: #4CAF50;
 }
 
-.stat-box .stat-label {
-    font-size: 1rem;
-    color: #666;
-    margin-top: 5px;
+/* Tombol logout */
+#logout-btn {
+    background: #f44336;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    display: block;
+    margin: 20px auto 0;
 }
 
-/* Form */
+#logout-btn:hover {
+    background: #d32f2f;
+}
+
+/* Form styling */
 .form-group {
     margin-bottom: 15px;
 }
 
 .form-group label {
     display: block;
-    font-weight: bold;
     margin-bottom: 5px;
+    font-weight: 500;
 }
 
-.form-group input, .form-group select, .form-group textarea {
+.form-group input[type="text"],
+.form-group input[type="number"],
+.form-group input[type="date"],
+.form-group input[type="email"],
+.form-group input[type="password"],
+.form-group select,
+.form-group textarea {
     width: 100%;
     padding: 10px;
-    border: 1px solid #ddd;
+    border: 1px solid #ccc;
     border-radius: 5px;
     font-size: 16px;
 }
 
-.form-group.checkbox {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.form-group.checkbox label {
-    margin-bottom: 0;
-}
-
-.form-group.checkbox input {
-    width: auto;
-}
-
-/* Info meja terpilih */
-.selected-meja-info {
-    margin-top: 5px;
-    font-size: 14px;
-    color: #4CAF50;
-    font-weight: bold;
+.form-group input[type="checkbox"] {
+    margin-right: 10px;
 }
 
 /* Grid meja */
 .meja-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
     gap: 10px;
     margin-top: 10px;
-    max-height: 300px;
-    overflow-y: auto;
-    padding: 5px;
-    border: 1px solid #eee;
-    border-radius: 5px;
 }
 
 .meja-item {
-    background: #e0e0e0;
-    padding: 10px 5px;
+    border: 2px solid #4CAF50; /* warna dasar, akan diubah per area via JS */
+    padding: 10px;
     text-align: center;
     border-radius: 5px;
     cursor: pointer;
-    font-weight: bold;
+    background: white;
     transition: 0.2s;
-    user-select: none;
+    font-weight: bold;
 }
 
 .meja-item.selected {
     background: #4CAF50;
     color: white;
+    border-color: #2e7d32;
 }
 
-.meja-item.disabled {
+.meja-item.occupied {
     opacity: 0.3;
     pointer-events: none;
-    background: #aaa;
 }
 
-/* Area meja */
-.area-smoking {
-    border-left: 5px solid #ff9800;
+/* Area styling */
+.area-non .meja-item {
+    border-color: #2196F3; /* biru */
 }
-.area-non-smoking {
-    border-left: 5px solid #2196F3;
+.area-smoking .meja-item {
+    border-color: #FF9800; /* oranye */
 }
-.area-tambahan {
-    border-left: 5px solid #9C27B0;
+.area-tambahan .meja-item {
+    border-color: #9C27B0; /* ungu */
 }
 
-/* Tabel reservasi */
-.table-container {
+/* Tabel responsif */
+.table-responsive {
     overflow-x: auto;
 }
 
 table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 14px;
+    margin-top: 20px;
 }
 
 th, td {
-    padding: 10px;
+    padding: 12px;
     text-align: left;
     border-bottom: 1px solid #ddd;
 }
 
 th {
-    background: #4CAF50;
+    background-color: #4CAF50;
     color: white;
-    position: sticky;
-    top: 0;
-}
-
-tr {
-    cursor: pointer;
 }
 
 tr:hover {
-    background: #f5f5f5;
+    background-color: #f5f5f5;
+    cursor: pointer;
 }
 
 /* Badge status */
-.badge {
+.status-badge {
     display: inline-block;
     padding: 3px 8px;
     border-radius: 12px;
@@ -250,109 +214,94 @@ tr:hover {
     color: white;
 }
 
-.badge-lengkap { background: #4CAF50; }
-.badge-belum-meja { background: #FF9800; }
-.badge-belum-dp { background: #F44336; }
-.badge-belum-meja-dp { background: #9E9E9E; }
+.status-lengkap { background-color: #4CAF50; }
+.status-belum-meja { background-color: #FF9800; }
+.status-belum-dp { background-color: #f44336; }
+.status-belum-meja-dp { background-color: #9C27B0; }
 
 /* Tombol aksi */
-.btn {
-    padding: 8px 15px;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 14px;
-    margin-right: 5px;
-}
-
-.btn-primary {
-    background: #4CAF50;
-    color: white;
-}
-
-.btn-danger {
-    background: #f44336;
-    color: white;
-}
-
-.btn-warning {
-    background: #ff9800;
-    color: white;
-}
-
-.btn-sm {
+.btn-edit, .btn-hapus, .btn-hapus-dp {
     padding: 5px 10px;
+    margin: 0 2px;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
     font-size: 12px;
 }
 
+.btn-edit { background: #2196F3; color: white; }
+.btn-hapus { background: #f44336; color: white; }
+.btn-hapus-dp { background: #FF9800; color: white; }
+
 /* Modal */
 .modal {
+    display: none;
     position: fixed;
-    top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0,0,0,0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
     z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.5);
 }
 
 .modal-content {
-    background: white;
+    background-color: #fefefe;
+    margin: 10% auto;
     padding: 20px;
-    border-radius: 8px;
-    max-width: 500px;
+    border: 1px solid #888;
     width: 90%;
-    max-height: 80vh;
-    overflow-y: auto;
+    max-width: 600px;
+    border-radius: 8px;
     position: relative;
 }
 
-.close-modal {
-    position: absolute;
-    top: 10px; right: 15px;
-    font-size: 24px;
+.close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
     cursor: pointer;
+}
+
+.close:hover {
+    color: black;
 }
 
 /* Notifikasi */
 .notification {
     position: fixed;
-    bottom: 20px; left: 50%;
+    bottom: 20px;
+    left: 50%;
     transform: translateX(-50%);
-    background: #4CAF50;
+    background-color: #333;
     color: white;
-    padding: 12px 24px;
+    padding: 15px 20px;
     border-radius: 5px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    display: none;
     z-index: 2000;
-    transition: opacity 0.3s;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
 }
 
-/* Utility */
-.text-center { text-align: center; }
-.mt-20 { margin-top: 20px; }
-.flex { display: flex; gap: 10px; align-items: center; }
-.flex-wrap { flex-wrap: wrap; }
-.justify-between { justify-content: space-between; }
+.notification.show {
+    display: block;
+}
 
-/* Mobile optimization */
+/* Responsif untuk layar kecil */
 @media (max-width: 600px) {
-    .navbar {
+    nav {
         flex-direction: column;
+        align-items: stretch;
     }
-    .nav-btn {
+    nav button {
         width: 100%;
     }
-    .meja-grid {
-        grid-template-columns: repeat(3, 1fr);
+    .dashboard-cards {
+        grid-template-columns: 1fr;
     }
-    table, .table-container {
-        font-size: 12px;
-    }
-    th, td {
-        padding: 5px;
-    }
-    .stat-box .stat-value {
-        font-size: 2rem;
+    .modal-content {
+        width: 95%;
+        margin: 20% auto;
     }
 }
