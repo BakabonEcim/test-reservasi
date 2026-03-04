@@ -123,6 +123,7 @@ nav button:hover {
 .form-group input[type="date"],
 .form-group input[type="email"],
 .form-group input[type="password"],
+.form-group input[type="tel"],
 .form-group select,
 .form-group textarea {
     width: 100%;
