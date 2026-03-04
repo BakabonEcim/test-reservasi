@@ -159,6 +159,9 @@ async function renderDashboard(container) {
         const reservasiBelumDP = reservations.filter(r => r.dpCheck === false && r.nomorMeja && r.nomorMeja.length > 0).length;
         const reservasiTanpaMeja = reservations.filter(r => !r.nomorMeja || r.nomorMeja.length === 0).length;
 
+        // Hitung total tamu
+        const totalTamu = reservations.reduce((sum, r) => sum + (r.jumlahTamu || 0), 0);
+
         container.innerHTML = `
             <div class="dashboard-cards">
                 <div class="card">
@@ -176,6 +179,10 @@ async function renderDashboard(container) {
                 <div class="card">
                     <h3>Reservasi Tanpa Meja</h3>
                     <div class="value">${reservasiTanpaMeja}</div>
+                </div>
+                <div class="card">
+                    <h3>Total Tamu Hari Ini</h3>
+                    <div class="value">${totalTamu}</div>
                 </div>
             </div>
             <button id="logout-btn">Logout</button>
@@ -233,12 +240,12 @@ async function renderReservasiForm(container, editId = null) {
 
                 <div class="form-group">
                     <label>Jumlah Tamu</label>
-                    <input type="number" id="jumlahTamu" min="1" value="${editData ? editData.jumlahTamu : '1'}" required>
+                    <input type="number" id="jumlahTamu" min="1" value="${editData ? editData.jumlahTamu : ''}" required>
                 </div>
 
                 <div class="form-group">
                     <label>Nomor HP</label>
-                    <input type="text" id="noHp" value="${editData ? editData.noHp : ''}" required>
+                    <input type="text" id="noHp" value="${editData ? editData.noHp : ''}" required inputmode="numeric" pattern="[0-9]*">
                 </div>
 
                 <div class="form-group">
@@ -280,7 +287,7 @@ async function renderReservasiForm(container, editId = null) {
                             <option value="cash" ${editData && editData.dpJenis === 'cash' ? 'selected' : ''}>Cash</option>
                         </select>
                         <label>Nominal DP:</label>
-                        <input type="text" id="dpNominal" value="${editData && editData.dpNominal ? formatRupiah(editData.dpNominal) : ''}" placeholder="Contoh: 50000">
+                        <input type="text" id="dpNominal" value="${editData && editData.dpNominal ? formatRupiah(editData.dpNominal) : ''}" placeholder="Contoh: 50000" inputmode="numeric" pattern="[0-9]*">
                     </div>
                 </div>
 
@@ -301,7 +308,7 @@ async function renderReservasiForm(container, editId = null) {
             }
             // Jika tanggal berubah, refresh grid meja
             if (document.getElementById('sudahAdaMeja').checked) {
-                await renderMejaGrid(editData ? editData.nomorMeja : []);
+                await renderMejaGrid(editData ? editData.nomorMeja : [], editingReservationId);
             }
         });
 
@@ -313,7 +320,7 @@ async function renderReservasiForm(container, editId = null) {
             const mejaSelection = document.getElementById('meja-selection');
             if (e.target.checked) {
                 mejaSelection.style.display = 'block';
-                await renderMejaGrid(editData ? editData.nomorMeja : []);
+                await renderMejaGrid(editData ? editData.nomorMeja : [], editingReservationId);
             } else {
                 mejaSelection.style.display = 'none';
             }
@@ -336,13 +343,18 @@ async function renderReservasiForm(container, editId = null) {
         // Submit form
         document.getElementById('reservasi-form').addEventListener('submit', handleReservasiSubmit);
 
+        // Render grid meja jika checkbox sudah dicentang
+        if (document.getElementById('sudahAdaMeja').checked) {
+            await renderMejaGrid(editData ? editData.nomorMeja : [], editingReservationId);
+        }
+
     } catch (error) {
         console.error('Error rendering form:', error);
         container.innerHTML = '<p>Gagal memuat form.</p>';
     }
 }
 
-async function renderMejaGrid(selectedMeja = []) {
+async function renderMejaGrid(selectedMeja = [], excludeReservationId = null) {
     const gridContainer = document.getElementById('meja-grid');
     if (!gridContainer) return;
 
@@ -350,10 +362,11 @@ async function renderMejaGrid(selectedMeja = []) {
     if (!tanggal) return;
 
     try {
-        // Ambil reservasi untuk tanggal yang dipilih untuk mengetahui meja terpakai
+        // Ambil reservasi untuk tanggal yang dipilih, kecuali yang sedang diedit
         const reservationsSnap = await db.collection('reservations').where('tanggal', '==', tanggal).get();
         const occupiedMeja = new Set();
         reservationsSnap.forEach(doc => {
+            if (excludeReservationId && doc.id === excludeReservationId) return; // lewati reservasi ini
             const data = doc.data();
             if (data.nomorMeja && Array.isArray(data.nomorMeja)) {
                 data.nomorMeja.forEach(no => occupiedMeja.add(no));
@@ -572,6 +585,7 @@ async function loadReservasiTable() {
         reservations.forEach(r => {
             const meja = r.nomorMeja && r.nomorMeja.length ? r.nomorMeja.join(', ') : '-';
             const urutanDP = r.dpCheck && dpMap.has(r.id) ? dpMap.get(r.id) : '-';
+            // Map status ke class CSS (hapus spasi)
             const statusClass = r.statusKelengkapan?.toLowerCase().replace(/ /g, '-') || '';
             html += `<tr data-id="${r.id}">
                 <td>${meja}</td>
@@ -1032,8 +1046,6 @@ window.onclick = function(event) {
     }
 }
 
-document.querySelector('.close')?.addEventListener('click', hideModal);
-// Catatan: .close akan ada setelah modal dirender, tapi event delegation bisa dipasang di document
 document.addEventListener('click', (e) => {
     if (e.target.classList.contains('close')) {
         hideModal();
